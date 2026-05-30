@@ -14,6 +14,10 @@ export function NavAuth() {
   }
   return (
     <span className="flex items-center gap-2">
+      <Link href="/trash" className="text-muted hover:text-ink">
+        trash
+      </Link>
+      <span className="text-muted">·</span>
       <span className="text-ink">{username}</span>
       <span className="text-muted">·</span>
       <button
