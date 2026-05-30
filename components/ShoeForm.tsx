@@ -19,6 +19,7 @@ import {
 } from '@/lib/mutations';
 import { useAuth } from './AuthProvider';
 import { useBrands, useFoams, useMeta } from '@/lib/hooks';
+import { hasSupabase } from '@/lib/supabase';
 
 // Derived / computed columns — never editable.
 const READONLY: ColumnKey[] = [
@@ -148,6 +149,14 @@ export function ShoeForm({
         </p>
       </header>
 
+      {!hasSupabase && (
+        <p className="text-xs text-amber-300 border border-amber-700/60 rounded p-2">
+          Supabase not configured — saving will fail. Set
+          NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable
+          writes.
+        </p>
+      )}
+
       <Section title="Identity">
         <Combobox
           label="Brand *"
@@ -217,7 +226,7 @@ export function ShoeForm({
         );
       })}
 
-      <Section title="Pre-requisites (unmeasured)">
+      <Section title="Pre-requisites">
         <Tri
           label="Has plate?"
           value={form.hasPlate ?? null}

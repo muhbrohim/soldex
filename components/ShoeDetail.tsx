@@ -102,6 +102,22 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
                 Foam: {shoe.foam}
               </span>
             )}
+            {shoe.hasPlate != null && (
+              <span
+                className="px-2 py-0.5 bg-panel border border-line rounded"
+                title="Has a stiffening plate in the midsole"
+              >
+                {shoe.hasPlate ? 'Plate' : 'No plate'}
+              </span>
+            )}
+            {shoe.hasRocker != null && (
+              <span
+                className="px-2 py-0.5 bg-panel border border-line rounded"
+                title="Has a forefoot rocker geometry"
+              >
+                {shoe.hasRocker ? 'Rocker' : 'No rocker'}
+              </span>
+            )}
             {(shoe.categories ?? []).map((c) => (
               <span
                 key={c}

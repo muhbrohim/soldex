@@ -56,7 +56,7 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
 
   return (
     <div className="grid md:grid-cols-[260px_1fr] gap-6">
-      <aside className="space-y-5 text-sm md:sticky md:top-16 md:self-start max-h-[calc(100vh-5rem)] overflow-y-auto pr-1">
+      <aside className="space-y-5 text-sm md:sticky md:top-16 md:self-start md:max-h-[calc(100vh-5rem)] md:overflow-y-auto md:pr-1">
         <div>
           <label className="block text-xs uppercase tracking-wider text-muted mb-1">
             Search

@@ -18,22 +18,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen">
         <AuthProvider>
           <header className="border-b border-line bg-panel/60 backdrop-blur sticky top-0 z-30">
-            <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6 text-sm">
+            <nav className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm">
               <Link href="/" className="flex items-center gap-2 font-semibold text-ink">
                 <Logo size={20} className="text-ink" />
                 <span>
                   soldex
-                  <span className="text-muted font-normal"> · sole index</span>
+                  <span className="text-muted font-normal hidden sm:inline"> · sole index</span>
                 </span>
               </Link>
-              <div className="flex gap-4 text-muted">
+              <div className="flex gap-3 sm:gap-4 text-muted flex-wrap">
                 <Link href="/" className="hover:text-ink">Browse</Link>
                 <Link href="/compare" className="hover:text-ink">Compare</Link>
                 <Link href="/insights" className="hover:text-ink">Insights</Link>
                 <Link href="/docs" className="hover:text-ink">Docs</Link>
                 <Link href="/about" className="hover:text-ink">About</Link>
               </div>
-              <div className="ml-auto text-xs">
+              <div className="sm:ml-auto text-xs">
                 <NavAuth />
               </div>
             </nav>
