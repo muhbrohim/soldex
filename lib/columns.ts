@@ -38,7 +38,10 @@ export type ColumnKey =
   | 'oStay'
   | 'foam'
   | 'priceIdr'
-  | 'valueIdx';
+  | 'valueIdx'
+  | 'dailyFit'
+  | 'maxFit'
+  | 'superFit';
 
 export type ColumnGroup =
   | 'identity'
@@ -48,7 +51,8 @@ export type ColumnGroup =
   | 'geomHeight'
   | 'geomWidth'
   | 'materials'
-  | 'value';
+  | 'value'
+  | 'fit';
 
 export interface ColumnMeta {
   key: ColumnKey;
@@ -375,6 +379,37 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
     numeric: true,
     format: num,
   },
+
+  dailyFit: {
+    key: 'dailyFit',
+    label: 'Daily fit',
+    code: 'dailyFit',
+    tip: 'How well this shoe matches the owner’s stated DAILY profile: flexible, firm, light, durable, smaller flare, cheaper. 0–100; higher = closer fit. Excludes rocker and plate (unmeasured). See /docs/preferences.',
+    align: 'right',
+    group: 'fit',
+    numeric: true,
+    format: (v) => (v == null ? '—' : `${v}`),
+  },
+  maxFit: {
+    key: 'maxFit',
+    label: 'Max fit',
+    code: 'maxFit',
+    tip: 'How well this shoe matches the owner’s stated MAX profile: rigid, firm, heavy OK, durable, larger flare, cheaper. 0–100; higher = closer fit. Excludes rocker and plate (unmeasured). See /docs/preferences.',
+    align: 'right',
+    group: 'fit',
+    numeric: true,
+    format: (v) => (v == null ? '—' : `${v}`),
+  },
+  superFit: {
+    key: 'superFit',
+    label: 'Super fit',
+    code: 'superFit',
+    tip: 'How well this shoe matches the owner’s stated SUPER profile: rigid, soft, light, durable, larger flare. Rocker + plate are required pre-reqs but unmeasured — treat score as ceiling. See /docs/preferences.',
+    align: 'right',
+    group: 'fit',
+    numeric: true,
+    format: (v) => (v == null ? '—' : `${v}`),
+  },
 };
 
 export const COLUMN_GROUP_LABEL: Record<ColumnGroup, string> = {
@@ -386,6 +421,7 @@ export const COLUMN_GROUP_LABEL: Record<ColumnGroup, string> = {
   geomWidth: 'Geometry — widths',
   materials: 'Materials',
   value: 'Value',
+  fit: 'Profile fit (owner)',
 };
 
 // Order columns are listed (in picker + rendered in table when visible)
@@ -418,6 +454,9 @@ export const ALL_COLUMNS: ColumnKey[] = [
   'foam',
   'priceIdr',
   'valueIdx',
+  'dailyFit',
+  'maxFit',
+  'superFit',
 ];
 
 export const DEFAULT_VISIBLE: ColumnKey[] = [
@@ -439,6 +478,9 @@ export const DEFAULT_VISIBLE: ColumnKey[] = [
   'foam',
   'priceIdr',
   'valueIdx',
+  'dailyFit',
+  'maxFit',
+  'superFit',
 ];
 
 // Helper: read a Shoe field by ColumnKey safely.

@@ -10,6 +10,7 @@ import {
   type ColumnKey,
   type ColumnGroup,
 } from '@/lib/columns';
+import { computeAllFits, PROFILE_LABEL, type ProfileKey } from '@/lib/preferences';
 import { HeaderTip } from './HeaderTip';
 
 // Which columns to surface per detail-page section.
@@ -54,6 +55,7 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
     : [];
   const compare = useCompare();
   const checked = compare.ids.includes(shoe.id);
+  const fits = computeAllFits(shoe, all);
 
   return (
     <div className="space-y-8">
@@ -116,6 +118,8 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
           })}
         </Group>
       ))}
+
+      <ProfileFitBlock fits={fits} />
 
       {(shoe.minus || shoe.conclusion || shoe.reBuy) && (
         <section>
@@ -211,6 +215,73 @@ function ShoeList({ title, items }: { title: string; items: Shoe[] }) {
           </Link>
         ))}
       </div>
+    </section>
+  );
+}
+
+type Fits = ReturnType<typeof computeAllFits>;
+
+function ProfileFitBlock({ fits }: { fits: Fits }) {
+  const profiles: ProfileKey[] = ['daily', 'max', 'super'];
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-2">
+        <h2 className="text-sm uppercase tracking-wider text-muted">
+          Profile fit (owner&apos;s preferences)
+        </h2>
+        <Link
+          href="/docs/preferences"
+          className="text-xs text-muted hover:text-accent"
+        >
+          How is this computed? →
+        </Link>
+      </div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        {profiles.map((p) => {
+          const f = fits[p];
+          const pct = f.score ?? 0;
+          const aligned = f.breakdown.filter((b) => b.score != null && b.score >= 0.75);
+          const against = f.breakdown.filter((b) => b.score != null && b.score <= 0.25);
+          return (
+            <div
+              key={p}
+              className="border border-line rounded p-3 bg-panel/40"
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-ink font-medium">{PROFILE_LABEL[p]}</span>
+                <span className="text-2xl text-accent num">
+                  {f.score == null ? '—' : f.score}
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 rounded bg-bg overflow-hidden">
+                <div
+                  className="h-full bg-accent"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-muted mt-1">
+                {Math.round(f.coverage * 100)}% of criteria measured
+              </p>
+              {!!aligned.length && (
+                <p className="text-xs text-ink/90 mt-2">
+                  <span className="text-muted">aligned:</span>{' '}
+                  {aligned.map((b) => b.label).join(', ')}
+                </p>
+              )}
+              {!!against.length && (
+                <p className="text-xs text-ink/90 mt-1">
+                  <span className="text-muted">against:</span>{' '}
+                  {against.map((b) => b.label).join(', ')}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted mt-2">
+        Excludes <em>rocker</em> and <em>plate</em> — both are pre-requisites
+        in the owner&apos;s SUPER profile but are not measured in this dataset.
+      </p>
     </section>
   );
 }

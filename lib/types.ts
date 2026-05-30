@@ -37,6 +37,10 @@ export interface Shoe {
   avgSa?: number;
   herMinusFer?: number;
   valueIdx?: number;
+  // profile fit (0–100), computed at load time from preferences matrix
+  dailyFit?: number;
+  maxFit?: number;
+  superFit?: number;
 }
 
 export interface Meta {

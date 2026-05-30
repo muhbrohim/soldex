@@ -16,6 +16,12 @@ const PAGES = [
       'Plain-English definition of every column in the browse table, including the ones friends keep mixing up (bend vs twist, durability vs bond, ER vs SA, flare).',
   },
   {
+    href: '/docs/preferences',
+    title: "Profile fit — owner's preferences",
+    blurb:
+      "The owner's criteria matrix for DAILY / MAX / SUPER usage profiles and how the per-shoe fit scores are computed. Transparent, opinionated, and not a recommendation for you.",
+  },
+  {
     href: '/docs/glossary',
     title: 'Glossary',
     blurb: 'Alphabetical list of every term and acronym used on this site.',

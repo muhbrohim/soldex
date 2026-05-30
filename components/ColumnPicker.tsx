@@ -86,6 +86,7 @@ export function ColumnPicker({
     geomWidth: [],
     materials: [],
     value: [],
+    fit: [],
   };
   for (const k of ALL_COLUMNS) groups[COLUMN_META[k].group].push(k);
 
