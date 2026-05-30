@@ -6,36 +6,41 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend,
 } from 'recharts';
 import type { Shoe } from '@/lib/types';
-import { formatIdr, formatGrams, formatNum, formatMm } from '@/lib/format';
+import { formatIdr, formatGrams, formatMm } from '@/lib/format';
 import { useCompare } from '@/store/compare';
+import { COLUMN_META, getField, type ColumnKey } from '@/lib/columns';
 
 const COLORS = ['#7dd3fc', '#fca5a5', '#86efac', '#fcd34d'];
 
 const AXES: { key: keyof Shoe; label: string; max: number }[] = [
-  { key: 'her', label: 'HER', max: 85 },
-  { key: 'fer', label: 'FER', max: 85 },
-  { key: 'hsa', label: 'HSA', max: 170 },
-  { key: 'fsa', label: 'FSA', max: 160 },
-  { key: 'trac', label: 'TRAC', max: 1 },
-  { key: 'mSoft', label: 'm-soft', max: 50 },
+  { key: 'her', label: 'Heel ER', max: 85 },
+  { key: 'fer', label: 'Fore ER', max: 85 },
+  { key: 'hsa', label: 'Heel SA', max: 170 },
+  { key: 'fsa', label: 'Fore SA', max: 160 },
+  { key: 'trac', label: 'Traction', max: 1 },
+  { key: 'mSoft', label: 'Softness', max: 50 },
 ];
 
-const DIFF_FIELDS: { key: keyof Shoe; label: string; better: 'higher' | 'lower'; fmt: (n?: number) => string }[] = [
-  { key: 'her', label: 'HER %', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'fer', label: 'FER %', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'avgEr', label: 'avg ER %', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'hsa', label: 'HSA', better: 'higher', fmt: (n) => (n == null ? '—' : String(n)) },
-  { key: 'fsa', label: 'FSA', better: 'higher', fmt: (n) => (n == null ? '—' : String(n)) },
-  { key: 'weightG', label: 'Weight', better: 'lower', fmt: (n) => formatGrams(n) },
-  { key: 'priceIdr', label: 'Price', better: 'lower', fmt: (n) => formatIdr(n) },
-  { key: 'valueIdx', label: 'value/M', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'drop', label: 'Drop', better: 'higher', fmt: (n) => formatMm(n) },
-  { key: 'heel', label: 'Heel', better: 'higher', fmt: (n) => formatMm(n) },
-  { key: 'fore', label: 'Fore', better: 'higher', fmt: (n) => formatMm(n) },
-  { key: 'trac', label: 'TRAC', better: 'higher', fmt: (n) => formatNum(n, 2) },
-  { key: 'mSoft', label: 'm-soft', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'flexStiff', label: 'flexStiff', better: 'higher', fmt: (n) => formatNum(n) },
-  { key: 'oDurPct', label: 'o-dur%', better: 'higher', fmt: (n) => formatNum(n, 2) },
+// Columns to show in the diff table; "better" rule = higher unless flagged 'lower'.
+const DIFF_COLUMNS: { key: ColumnKey; better: 'higher' | 'lower' | 'neutral' }[] = [
+  { key: 'her', better: 'higher' },
+  { key: 'fer', better: 'higher' },
+  { key: 'avgEr', better: 'higher' },
+  { key: 'hsa', better: 'higher' },
+  { key: 'fsa', better: 'higher' },
+  { key: 'weightG', better: 'lower' },
+  { key: 'priceIdr', better: 'lower' },
+  { key: 'valueIdx', better: 'higher' },
+  { key: 'drop', better: 'neutral' },
+  { key: 'heel', better: 'higher' },
+  { key: 'fore', better: 'higher' },
+  { key: 'trac', better: 'higher' },
+  { key: 'mSoft', better: 'neutral' },
+  { key: 'flexStiff', better: 'neutral' },
+  { key: 'torsRigid', better: 'higher' },
+  { key: 'oDurPct', better: 'higher' },
+  { key: 'oStay', better: 'higher' },
+  { key: 'upFoam', better: 'neutral' },
 ];
 
 export function ComparePage({ allShoes }: { allShoes: Shoe[] }) {
@@ -157,24 +162,31 @@ function ComparePageInner({ allShoes }: { allShoes: Shoe[] }) {
               </tr>
             </thead>
             <tbody>
-              {DIFF_FIELDS.map((field) => {
-                const vals = shoes.map((s) => s[field.key] as number | undefined);
-                const present = vals.filter((v): v is number => v != null);
-                const best = present.length
-                  ? field.better === 'higher' ? Math.max(...present) : Math.min(...present)
-                  : null;
+              {DIFF_COLUMNS.map((field) => {
+                const meta = COLUMN_META[field.key];
+                const vals = shoes.map(
+                  (s) => getField(s, field.key) as number | undefined,
+                );
+                const present = vals.filter((v): v is number => typeof v === 'number');
+                const best =
+                  present.length && field.better !== 'neutral'
+                    ? field.better === 'higher'
+                      ? Math.max(...present)
+                      : Math.min(...present)
+                    : null;
                 return (
-                  <tr key={field.key as string} className="border-t border-line/60">
-                    <td className="p-2 text-muted">{field.label}</td>
+                  <tr key={field.key} className="border-t border-line/60">
+                    <td className="p-2 text-muted">{meta.label}</td>
                     {shoes.map((s, i) => {
                       const v = vals[i];
-                      const isBest = v != null && v === best && present.length > 1;
+                      const isBest =
+                        v != null && best != null && v === best && present.length > 1;
                       return (
                         <td
                           key={s.id}
                           className={`p-2 text-right ${isBest ? 'text-accent font-medium' : 'text-ink'}`}
                         >
-                          {field.fmt(v)}
+                          {meta.format ? meta.format(v) : v == null ? '—' : String(v)}
                         </td>
                       );
                     })}

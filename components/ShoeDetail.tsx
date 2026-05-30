@@ -1,9 +1,50 @@
 'use client';
 import Link from 'next/link';
 import type { Shoe } from '@/lib/types';
-import { formatIdr, formatGrams, formatNum, formatMm, formatPct } from '@/lib/format';
+import { formatPct } from '@/lib/format';
 import { similar, TYPE_LABEL } from '@/lib/derive';
 import { useCompare } from '@/store/compare';
+import {
+  COLUMN_META,
+  getField,
+  type ColumnKey,
+  type ColumnGroup,
+} from '@/lib/columns';
+import { HeaderTip } from './HeaderTip';
+
+// Which columns to surface per detail-page section.
+const SECTIONS: { title: string; group: ColumnGroup; cols: ColumnKey[] }[] = [
+  {
+    title: 'Energy & shock',
+    group: 'energy',
+    cols: ['her', 'fer', 'avgEr', 'hsa', 'fsa', 'avgSa', 'herMinusFer'],
+  },
+  {
+    title: 'Feel & stiffness',
+    group: 'feel',
+    cols: ['mSoft', 'flexStiff', 'torsRigid'],
+  },
+  {
+    title: 'Outsole',
+    group: 'outsole',
+    cols: ['oDurPct', 'oStay', 'trac'],
+  },
+  {
+    title: 'Geometry — heights',
+    group: 'geomHeight',
+    cols: ['weightG', 'heel', 'fore', 'drop', 'drem', 'oThick'],
+  },
+  {
+    title: 'Geometry — widths',
+    group: 'geomWidth',
+    cols: ['mFore', 'width', 'toe', 'upFoam'],
+  },
+  {
+    title: 'Value',
+    group: 'value',
+    cols: ['priceIdr', 'valueIdx'],
+  },
+];
 
 export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
   const sim = similar(shoe, all, 5);
@@ -32,7 +73,12 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
               </span>
             )}
             {(shoe.categories ?? []).map((c) => (
-              <span key={c} className="px-2 py-0.5 border border-line rounded text-muted">{c}</span>
+              <span
+                key={c}
+                className="px-2 py-0.5 border border-line rounded text-muted"
+              >
+                {c}
+              </span>
             ))}
           </div>
         </div>
@@ -45,62 +91,64 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
           >
             {checked ? 'In compare ✓' : '+ Add to compare'}
           </button>
-          <Link href="/" className="text-sm text-muted hover:text-ink">← Back</Link>
+          <Link href="/" className="text-sm text-muted hover:text-ink">
+            ← Back
+          </Link>
         </div>
       </header>
 
-      <Group title="Performance">
-        <Stat label="HER" v={formatPct(shoe.her)} />
-        <Stat label="FER" v={formatPct(shoe.fer)} />
-        <Stat label="avg ER" v={formatPct(shoe.avgEr)} />
-        <Stat label="HER − FER" v={formatNum(shoe.herMinusFer)} />
-        <Stat label="HSA" v={formatNum(shoe.hsa, 0)} />
-        <Stat label="FSA" v={formatNum(shoe.fsa, 0)} />
-        <Stat label="avg SA" v={formatNum(shoe.avgSa)} />
-        <Stat label="TRAC" v={formatNum(shoe.trac, 2)} />
-      </Group>
-
-      <Group title="Geometry">
-        <Stat label="Weight" v={formatGrams(shoe.weightG)} />
-        <Stat label="Heel" v={formatMm(shoe.heel)} />
-        <Stat label="Fore" v={formatMm(shoe.fore)} />
-        <Stat label="Drop" v={formatMm(shoe.drop)} />
-        <Stat label="Width" v={formatMm(shoe.width)} />
-        <Stat label="Toe" v={formatMm(shoe.toe)} />
-        <Stat label="m-fore" v={formatNum(shoe.mFore)} />
-      </Group>
-
-      <Group title="Midsole / Outsole">
-        <Stat label="m-soft" v={formatNum(shoe.mSoft)} />
-        <Stat label="flexStiff" v={formatNum(shoe.flexStiff)} />
-        <Stat label="torsRigid" v={formatNum(shoe.torsRigid)} />
-        <Stat label="o-thick" v={formatNum(shoe.oThick)} />
-        <Stat label="drem" v={formatNum(shoe.drem)} />
-        <Stat label="o-dur%" v={formatNum(shoe.oDurPct, 2)} />
-        <Stat label="o-stay" v={formatNum(shoe.oStay)} />
-        <Stat label="up-foam" v={formatNum(shoe.upFoam)} />
-      </Group>
-
-      <Group title="Price">
-        <Stat label="Price" v={formatIdr(shoe.priceIdr)} />
-        <Stat label="value/M IDR" v={formatNum(shoe.valueIdx)} />
-        <Stat label="myApprox" v={shoe.myApprox != null ? `${shoe.myApprox} g` : '—'} />
-      </Group>
+      {SECTIONS.map((sec) => (
+        <Group key={sec.group} title={sec.title}>
+          {sec.cols.map((k) => {
+            const meta = COLUMN_META[k];
+            const v = getField(shoe, k);
+            const display = meta.format ? meta.format(v) : String(v ?? '—');
+            return (
+              <Stat
+                key={k}
+                colKey={k}
+                label={meta.label}
+                code={meta.code}
+                tip={meta.tip}
+                value={display}
+              />
+            );
+          })}
+        </Group>
+      ))}
 
       {(shoe.minus || shoe.conclusion || shoe.reBuy) && (
         <section>
-          <h2 className="text-sm uppercase tracking-wider text-muted mb-2">Owner notes</h2>
+          <h2 className="text-sm uppercase tracking-wider text-muted mb-2">
+            Owner notes
+          </h2>
           <div className="bg-panel border border-line rounded p-4 text-sm space-y-2">
-            {shoe.minus && <p><span className="text-muted">minus:</span> {shoe.minus}</p>}
-            {shoe.conclusion && <p><span className="text-muted">conclusion:</span> {shoe.conclusion}</p>}
-            {shoe.reBuy && <p><span className="text-muted">re-buy:</span> {shoe.reBuy}</p>}
+            {shoe.minus && (
+              <p>
+                <span className="text-muted">minus:</span> {shoe.minus}
+              </p>
+            )}
+            {shoe.conclusion && (
+              <p>
+                <span className="text-muted">conclusion:</span> {shoe.conclusion}
+              </p>
+            )}
+            {shoe.reBuy && (
+              <p>
+                <span className="text-muted">re-buy:</span> {shoe.reBuy}
+              </p>
+            )}
           </div>
         </section>
       )}
 
       <ShoeList title="Similar shoes" items={sim} />
-      {!!sameBrand.length && <ShoeList title={`More from ${shoe.brand}`} items={sameBrand} />}
-      {!!sameFoam.length && <ShoeList title={`Same foam · ${shoe.foam}`} items={sameFoam} />}
+      {!!sameBrand.length && (
+        <ShoeList title={`More from ${shoe.brand}`} items={sameBrand} />
+      )}
+      {!!sameFoam.length && (
+        <ShoeList title={`Same foam · ${shoe.foam}`} items={sameFoam} />
+      )}
     </div>
   );
 }
@@ -116,11 +164,30 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function Stat({ label, v }: { label: string; v: string }) {
+function Stat({
+  colKey,
+  label,
+  code,
+  tip,
+  value,
+}: {
+  colKey: ColumnKey;
+  label: string;
+  code?: string;
+  tip: string;
+  value: string;
+}) {
   return (
     <div className="bg-bg p-3">
-      <div className="text-xs text-muted">{label}</div>
-      <div className="text-base text-ink num mt-0.5">{v}</div>
+      <div className="text-xs text-muted">
+        <HeaderTip
+          label={label}
+          code={code}
+          tip={tip}
+          learnMoreHref={`/docs/metrics#${colKey}`}
+        />
+      </div>
+      <div className="text-base text-ink num mt-0.5">{value}</div>
     </div>
   );
 }
