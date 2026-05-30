@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar, Legend, Cell,
+  ResponsiveContainer, BarChart, Bar, Cell, ErrorBar,
 } from 'recharts';
 import type { Shoe } from '@/lib/types';
 import { formatIdr } from '@/lib/format';
@@ -42,6 +42,34 @@ export function InsightsView({ shoes }: { shoes: Shoe[] }) {
   const priceHist = histogram(
     shoes.map((s) => (s.priceIdr ?? 0) / 1_000_000).filter((v) => v > 0), 0.5,
   );
+
+  // Forefoot flare by category (upFoam = mFore - width).
+  // Ordered following the community rule of thumb: daily (small) → super → maximalist → megablast (large).
+  const FLARE_CAT_ORDER = ['DAILY', 'SUPER', 'MAXIMALIST', 'MEGABLAST', 'RACERS', 'HYPED'];
+  const flareByCat = (() => {
+    const buckets: Record<string, number[]> = {};
+    for (const s of shoes) {
+      if (s.upFoam == null) continue;
+      for (const c of s.categories ?? []) {
+        if (!FLARE_CAT_ORDER.includes(c)) continue;
+        (buckets[c] ||= []).push(s.upFoam);
+      }
+    }
+    return FLARE_CAT_ORDER
+      .filter((c) => buckets[c]?.length)
+      .map((c) => {
+        const vs = buckets[c];
+        const mean = vs.reduce((a, b) => a + b, 0) / vs.length;
+        const min = Math.min(...vs);
+        const max = Math.max(...vs);
+        return {
+          label: `${c} (${vs.length})`,
+          mean: +mean.toFixed(1),
+          errLo: +(mean - min).toFixed(1),
+          errHi: +(max - mean).toFixed(1),
+        };
+      });
+  })();
 
   return (
     <div className="space-y-10">
@@ -127,6 +155,36 @@ export function InsightsView({ shoes }: { shoes: Shoe[] }) {
           <Bar dataKey="count" fill="#fca5a5" />
         </BarChart>
       </Chart>
+
+      {flareByCat.length > 0 && (
+        <Chart title="Forefoot flare by category — mean ± min/max (mm)">
+          <BarChart data={flareByCat} margin={{ bottom: 10 }}>
+            <CartesianGrid stroke="#2a2b30" />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: '#8a8a93', fontSize: 11 }}
+              interval={0}
+              angle={-15}
+              dy={6}
+              height={50}
+            />
+            <YAxis tick={{ fill: '#8a8a93', fontSize: 11 }} />
+            <Tooltip
+              contentStyle={{ background: '#15161a', border: '1px solid #2a2b30' }}
+              formatter={(v) => [`${v} mm`, 'mean flare']}
+            />
+            <Bar dataKey="mean" fill="#c4b5fd">
+              <ErrorBar
+                dataKey="errHi"
+                width={6}
+                strokeWidth={1.5}
+                stroke="#8a8a93"
+                direction="y"
+              />
+            </Bar>
+          </BarChart>
+        </Chart>
+      )}
     </div>
   );
 }
