@@ -13,6 +13,7 @@ import {
   getField,
   type ColumnKey,
 } from '@/lib/columns';
+import { computeThresholds, getBandLabel } from '@/lib/bands';
 import { HeaderTip } from './HeaderTip';
 import { ColumnPicker, loadVisibleColumns } from './ColumnPicker';
 
@@ -37,6 +38,9 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
     () => ALL_COLUMNS.filter((k) => visible.includes(k)),
     [visible],
   );
+  // Tertile thresholds derived from the *full* population (not filtered),
+  // so a band label means the same thing as you change filters.
+  const thresholds = useMemo(() => computeThresholds(shoes), [shoes]);
 
   function toggleSort(k: ColumnKey) {
     const sk = k as unknown as SortKey;
@@ -83,7 +87,7 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
           onChange={(v) => setF({ ...f, foams: v })}
         />
         <ChipFilter
-          label="Sheet"
+          label="Category"
           options={meta.categories}
           selected={f.categories}
           onChange={(v) => setF({ ...f, categories: v })}
@@ -229,14 +233,36 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
                           </td>
                         );
                       }
+                      if (k === 'type') {
+                        const t = s.type;
+                        const full = t ? TYPE_LABEL[t] : undefined;
+                        return (
+                          <td
+                            key={k}
+                            className={`p-2 ${align} text-muted`}
+                            title={full ? `${t} · ${full}` : t ?? ''}
+                          >
+                            {t ?? '—'}
+                          </td>
+                        );
+                      }
                       const display = meta.format ? meta.format(v) : String(v ?? '—');
-                      const muted = k === 'type' || k === 'foam' || k === 'valueIdx';
+                      const band = getBandLabel(k, v, thresholds);
+                      const muted = k === 'foam' || k === 'valueIdx';
                       return (
                         <td
                           key={k}
                           className={`p-2 ${align} ${muted ? 'text-muted' : ''}`}
                         >
-                          {display}
+                          <span>{display}</span>
+                          {band && (
+                            <span
+                              className="ml-1 align-middle inline-block px-1 py-px text-[9px] uppercase tracking-wider text-muted border border-line rounded"
+                              title={`Band: ${band} (tertile of population)`}
+                            >
+                              {band}
+                            </span>
+                          )}
                         </td>
                       );
                     })}

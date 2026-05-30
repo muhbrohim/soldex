@@ -33,7 +33,7 @@ const SECTIONS: { title: string; group: ColumnGroup; cols: ColumnKey[] }[] = [
   {
     title: 'Geometry — heights',
     group: 'geomHeight',
-    cols: ['weightG', 'heel', 'fore', 'drop', 'drem', 'oThick'],
+    cols: ['weightG', 'myApprox', 'heel', 'fore', 'drop', 'drem', 'oThick'],
   },
   {
     title: 'Geometry — widths',
@@ -65,8 +65,11 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
           <h1 className="text-3xl font-semibold">{shoe.version}</h1>
           <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
             {shoe.type && (
-              <span className="px-2 py-0.5 bg-panel border border-line rounded">
-                {shoe.type} · {TYPE_LABEL[shoe.type] ?? ''}
+              <span
+                className="px-2 py-0.5 bg-panel border border-line rounded"
+                title={TYPE_LABEL[shoe.type] ?? shoe.type}
+              >
+                {shoe.type}
               </span>
             )}
             {shoe.foam && (
@@ -127,19 +130,21 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
             Owner notes
           </h2>
           <div className="bg-panel border border-line rounded p-4 text-sm space-y-2">
-            {shoe.minus && (
-              <p>
-                <span className="text-muted">minus:</span> {shoe.minus}
-              </p>
-            )}
             {shoe.conclusion && (
               <p>
-                <span className="text-muted">conclusion:</span> {shoe.conclusion}
+                <span className="text-muted">What&apos;s good:</span>{' '}
+                {shoe.conclusion}
+              </p>
+            )}
+            {shoe.minus && (
+              <p>
+                <span className="text-muted">What&apos;s bad:</span> {shoe.minus}
               </p>
             )}
             {shoe.reBuy && (
               <p>
-                <span className="text-muted">re-buy:</span> {shoe.reBuy}
+                <span className="text-muted">Would buy again:</span>{' '}
+                {shoe.reBuy}
               </p>
             )}
           </div>

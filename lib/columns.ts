@@ -39,6 +39,7 @@ export type ColumnKey =
   | 'foam'
   | 'priceIdr'
   | 'valueIdx'
+  | 'myApprox'
   | 'dailyFit'
   | 'maxFit'
   | 'superFit';
@@ -109,7 +110,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   // Energy & shock
   her: {
     key: 'her',
-    label: 'Heel ER %',
+    label: 'Heel energy return %',
     code: 'HER',
     tip: 'Heel energy return: percent of impact energy the heel gives back on landing. Higher = bouncier.',
     align: 'right',
@@ -119,7 +120,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   fer: {
     key: 'fer',
-    label: 'Fore ER %',
+    label: 'Forefoot energy return %',
     code: 'FER',
     tip: 'Forefoot energy return at toe-off. Higher = more push when you roll off the front.',
     align: 'right',
@@ -129,7 +130,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   avgEr: {
     key: 'avgEr',
-    label: 'Avg ER %',
+    label: 'Avg energy return %',
     code: 'avgEr',
     tip: 'Average of HER and FER. A single overall bounce number.',
     align: 'right',
@@ -139,7 +140,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   hsa: {
     key: 'hsa',
-    label: 'Heel SA',
+    label: 'Heel shock absorption',
     code: 'HSA',
     tip: 'Heel shock absorption: how much impact energy the heel dampens (not returned). Higher = softer landing.',
     align: 'right',
@@ -149,7 +150,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   fsa: {
     key: 'fsa',
-    label: 'Fore SA',
+    label: 'Forefoot shock absorption',
     code: 'FSA',
     tip: 'Forefoot shock absorption. Higher = more cushioned push-off.',
     align: 'right',
@@ -159,7 +160,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   avgSa: {
     key: 'avgSa',
-    label: 'Avg SA',
+    label: 'Avg shock absorption',
     code: 'avgSa',
     tip: 'Average of HSA and FSA. Overall cushioning.',
     align: 'right',
@@ -169,7 +170,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   herMinusFer: {
     key: 'herMinusFer',
-    label: 'HER − FER',
+    label: 'Heel − Fore ER',
     code: 'minus',
     tip: 'Heel ER minus Forefoot ER. Positive = heel bouncier than forefoot (heel-strike friendly). Negative = forefoot bouncier (toe-off friendly).',
     align: 'right',
@@ -191,9 +192,9 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   flexStiff: {
     key: 'flexStiff',
-    label: 'Bend stiffness',
+    label: 'Stiffness',
     code: 'flexStiff',
-    tip: 'Longitudinal (toe-to-heel) bending resistance. Higher = stiffer plate feel. Different from twist rigidity.',
+    tip: 'Longitudinal (toe-to-heel) bending resistance. Higher = stiffer plate feel. Different from torsional rigidity.',
     align: 'right',
     group: 'feel',
     numeric: true,
@@ -201,9 +202,9 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   torsRigid: {
     key: 'torsRigid',
-    label: 'Twist rigidity',
+    label: 'Torsional rigidity',
     code: 'torsRigid',
-    tip: 'Torsional (medial-to-lateral) rigidity. Higher = more stable side-to-side on uneven ground. Different from bend stiffness.',
+    tip: 'Torsional (medial-to-lateral) rigidity. Higher = more stable side-to-side on uneven ground. Different from longitudinal stiffness.',
     align: 'right',
     group: 'feel',
     numeric: true,
@@ -213,7 +214,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   // Outsole
   oDurPct: {
     key: 'oDurPct',
-    label: 'Outsole dur %',
+    label: 'Outsole durability %',
     code: 'o-dur%',
     tip: 'Outsole durability: percent of rubber surviving the wear test. Quantity of rubber left before bald. Different from outsole bond.',
     align: 'right',
@@ -265,7 +266,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   fore: {
     key: 'fore',
-    label: 'Fore stack',
+    label: 'Forefoot stack',
     code: 'fore',
     tip: 'Midsole thickness under the forefoot, in mm.',
     align: 'right',
@@ -275,9 +276,9 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   drop: {
     key: 'drop',
-    label: 'Drop',
+    label: 'Heel-to-toe drop',
     code: 'drop',
-    tip: 'Heel-to-toe height difference (heel stack − fore stack), in mm.',
+    tip: 'Heel-to-toe height difference (heel stack − forefoot stack), in mm.',
     align: 'right',
     group: 'geomHeight',
     numeric: true,
@@ -285,7 +286,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   drem: {
     key: 'drem',
-    label: 'Drop remaining',
+    label: 'Drop under load',
     code: 'drem',
     tip: 'Effective drop after midsole compression under load, in mm. How much drop is left when you stand on it.',
     align: 'right',
@@ -295,7 +296,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   oThick: {
     key: 'oThick',
-    label: 'Outsole thick',
+    label: 'Outsole thickness',
     code: 'o-thick',
     tip: 'Rubber layer thickness under the foot, in mm.',
     align: 'right',
@@ -307,7 +308,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   // Geometry — widths
   mFore: {
     key: 'mFore',
-    label: 'Midsole fore width',
+    label: 'Midsole forefoot width',
     code: 'm-fore',
     tip: 'Midsole width at the forefoot, in mm. The bottom platform.',
     align: 'right',
@@ -317,7 +318,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   width: {
     key: 'width',
-    label: 'Upper fore width',
+    label: 'Width',
     code: 'width',
     tip: 'Upper width at the forefoot, in mm. Where your foot actually sits.',
     align: 'right',
@@ -327,7 +328,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   },
   toe: {
     key: 'toe',
-    label: 'Toebox',
+    label: 'Toebox width',
     code: 'toe',
     tip: 'Toebox width at the metatarsals, in mm.',
     align: 'right',
@@ -349,7 +350,7 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
   // Materials
   foam: {
     key: 'foam',
-    label: 'Foam',
+    label: 'Midsole foam',
     code: 'FOAM',
     tip: 'Primary midsole foam compound (e.g. PEBA, eTPU, EVA).',
     align: 'left',
@@ -378,6 +379,17 @@ export const COLUMN_META: Record<ColumnKey, ColumnMeta> = {
     group: 'value',
     numeric: true,
     format: num,
+  },
+
+  myApprox: {
+    key: 'myApprox',
+    label: "Owner's approx weight",
+    code: 'myApprox',
+    tip: "Owner's quick estimate of single-shoe weight in grams (eyeballed or hand-weighed, not the lab reference). Use Weight for the canonical number.",
+    align: 'right',
+    group: 'geomHeight',
+    numeric: true,
+    format: grams,
   },
 
   dailyFit: {
@@ -447,6 +459,7 @@ export const ALL_COLUMNS: ColumnKey[] = [
   'drop',
   'drem',
   'oThick',
+  'myApprox',
   'mFore',
   'width',
   'toe',

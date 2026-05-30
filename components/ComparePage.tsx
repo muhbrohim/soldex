@@ -199,12 +199,20 @@ function ComparePageInner({ allShoes }: { allShoes: Shoe[] }) {
       </section>
 
       <section className="grid sm:grid-cols-2 gap-3">
-        {shoes.map((s) => (
-          <div key={s.id} className="border border-line rounded p-3 text-sm">
-            <div className="text-muted text-xs mb-1">{s.brand} {s.version} · notes</div>
-            <p>{[s.minus, s.conclusion, s.reBuy].filter(Boolean).join(' · ') || <span className="text-muted">—</span>}</p>
-          </div>
-        ))}
+        {shoes.map((s) => {
+          const bits: string[] = [];
+          if (s.conclusion) bits.push(`+ ${s.conclusion}`);
+          if (s.minus) bits.push(`− ${s.minus}`);
+          if (s.reBuy) bits.push(`buy again: ${s.reBuy}`);
+          return (
+            <div key={s.id} className="border border-line rounded p-3 text-sm">
+              <div className="text-muted text-xs mb-1">
+                {s.brand} {s.version} · notes
+              </div>
+              <p>{bits.length ? bits.join(' · ') : <span className="text-muted">—</span>}</p>
+            </div>
+          );
+        })}
       </section>
     </div>
   );

@@ -40,4 +40,5 @@ export const TYPE_LABEL: Record<string, string> = {
   C: 'Cushion',
   S: 'Speed',
   M: 'Maximalist',
+  RET: 'Retired',
 };
