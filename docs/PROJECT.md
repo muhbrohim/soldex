@@ -2,18 +2,23 @@
 
 > **Soldex — Sole Index.** A personal, data-first running-shoe database for me and a few friends.
 
-**Status:** Planning · v0
+**Status:** v0.1 shipped · live at https://muhbrohim.github.io/soldex/
 **Last updated:** 2026-05-30
-**Owner:** w200221
+**Owner:** muhbrohim ([github.com/muhbrohim/soldex](https://github.com/muhbrohim/soldex))
 **Audience:** Personal use + a small circle of friends (unlisted URL)
+**License:** MIT
 
 ---
 
 ## 1. What this is
 
-Soldex is a small, private web app that turns a hand-curated spreadsheet of running-shoe measurements (`EnergyReturn-ShockAbsorption.xlsx`) into a fast, filterable, comparable browsing experience.
+Soldex is a small, public-but-unlisted web app that turns a hand-curated
+spreadsheet of running-shoe measurements
+(`data/EnergyReturn-ShockAbsorption.xlsx`) into a fast, filterable, comparable
+browsing experience.
 
-It is not a review site. It is not a recommender. It presents pure measured data and lets the viewer slice it however they want.
+It is not a review site. It is not a recommender. It presents pure measured
+data and lets the viewer slice it however they want.
 
 ### Why it exists
 
@@ -34,19 +39,22 @@ It is not a review site. It is not a recommender. It presents pure measured data
 
 | Audience | Access |
 |---|---|
-| Owner | Full read; data refresh via local script + redeploy |
+| Owner | Full read; data refresh via local script + `git push` |
 | Close friends | Read-only via shared, unlisted URL |
-| Public / search engines | Not intended; no link from public pages, `noindex` meta tag |
+| Public / search engines | Not intended; no link from public pages, `noindex,nofollow` meta tag |
 
-Security model: **obscurity, not authentication.** Acceptable for non-sensitive personal data. A shared-passphrase splash is an optional later add-on.
+Security model: **obscurity, not authentication.** Acceptable for non-sensitive
+personal data. The repo is public (so GitHub Pages works on a free account)
+but the dataset is observational and contains no PII. A shared-passphrase
+splash is an optional later add-on.
 
 ---
 
 ## 3. Data source
 
-- **Source of truth:** `EnergyReturn-ShockAbsorption.xlsx` (kept locally)
-- **Sheets:** INTERESTED, MEGABLAST, DAILY, MAXIMALIST, SUPER, TOP5TRAINER, HYPED, RACERS, HOKA, PUMA, 60>HER>55, 70>HER>60, HER>70
-- **Row count:** ~150 unique shoes across 14 brands
+- **Source of truth:** `data/EnergyReturn-ShockAbsorption.xlsx`
+- **Sheets (13):** INTERESTED, MEGABLAST, DAILY, MAXIMALIST, SUPER, TOP5TRAINER, HYPED, RACERS, HOKA, PUMA, 60>HER>55, 70>HER>60, HER>70
+- **Current dataset:** **174 unique shoes** across **18 brands** and **11 foam families**
 - **Update cadence:** ad-hoc, manual (when owner adds new shoes)
 
 ### Field dictionary
@@ -68,10 +76,10 @@ Security model: **obscurity, not authentication.** Acceptable for non-sensitive 
 | TRAC | float (0–1) | Traction score |
 | m-soft | float | Midsole softness |
 | flexstiff / torsrigid | float | Longitudinal & torsional stiffness |
-| FOAM | enum | PEBA, A-TPU, EVA, TPEE, POE, A-TPU/EVA, A-TPU/TPEE, PEBA/EVA, TPE |
+| FOAM | enum | A-TPU, A-TPU/EVA, A-TPU/TPEE, EVA, PEBA, PEBA/EVA, POE, TPE, TPEE, TPU, eTPU |
 | up-foam | float | Upper-foam metric |
 | myApprox | int | Owner's weight estimate |
-| Type | enum | R (race) / D (daily) / DC (daily-cushion) / C (cushion) / S (speed) |
+| Type | enum | R (race), D (daily), DC (daily-cushion), C (cushion), S (speed), M (maximalist), RET (retired race) |
 | minus / re-BUY / conclusion | text | Owner's qualitative notes |
 
 ### Derived fields (computed in ETL)
@@ -88,24 +96,30 @@ Security model: **obscurity, not authentication.** Acceptable for non-sensitive 
 ## 4. Architecture
 
 ```
-┌──────────────────────────────┐
-│  EnergyReturn-Shock... .xlsx │  ← source of truth (local)
-└──────────────┬───────────────┘
-               │ python scripts/build_data.py
-               ▼
-┌──────────────────────────────┐
-│  public/data/shoes.json      │  ← canonical, deduped, typed
-│  public/data/meta.json       │  ← brand list, foam list, counts, generatedAt
-└──────────────┬───────────────┘
-               │ next build (SSG)
-               ▼
-┌──────────────────────────────┐
-│  Next.js static site          │  ← deployed to Vercel
-│  (no runtime backend)         │
-└──────────────┬───────────────┘
-               │ shareable URL
-               ▼
-        Owner + friends
+┌──────────────────────────────────────────┐
+│  data/EnergyReturn-ShockAbsorption.xlsx  │  ← source of truth (committed)
+└────────────────┬─────────────────────────┘
+                 │ python scripts/build_data.py   (locally OR in CI)
+                 ▼
+┌──────────────────────────────────────────┐
+│  public/data/shoes.json                  │  ← canonical, deduped, typed
+│  public/data/meta.json                   │  ← brands, foams, ranges, generatedAt
+└────────────────┬─────────────────────────┘
+                 │ next build  (output: 'export' → ./out)
+                 ▼
+┌──────────────────────────────────────────┐
+│  Plain static site (HTML + JS + JSON)    │
+│  No runtime backend, no API routes       │
+└────────────────┬─────────────────────────┘
+                 │ GitHub Actions
+                 ▼
+┌──────────────────────────────────────────┐
+│  GitHub Pages                            │
+│  https://muhbrohim.github.io/soldex/     │
+└────────────────┬─────────────────────────┘
+                 │ shareable URL
+                 ▼
+            Owner + friends
 ```
 
 - **Build-time only.** No server runtime, no API routes.
@@ -116,45 +130,49 @@ Security model: **obscurity, not authentication.** Acceptable for non-sensitive 
 
 ## 5. Tech stack
 
+Three columns: what the v0 spec called for · what actually ships in v0.1 ·
+why if different.
+
 ### Front-end
 
-| Layer | Choice | Version | Reason |
+| Layer | Specified | Shipped | Notes |
 |---|---|---|---|
-| Framework | **Next.js (App Router)** | 15.x | SSG by default, file-system routing, first-class Vercel deploy |
-| Language | **TypeScript** | 5.x | Type safety against the JSON schema |
-| Runtime | React | 19.x | Bundled with Next 15 |
-| Styling | **Tailwind CSS** | 4.x | Utility-first, no theme bikeshedding |
-| UI primitives | **shadcn/ui** | latest | Accessible, copy-in components (Button, Drawer, Slider, Table, Dialog) |
-| Tables | **TanStack Table** | 8.x | Headless sort/filter/column-visibility |
-| Charts | **Recharts** | 2.x | Radar (compare), Scatter (insights), Bar (insights) |
-| Filter state | **nuqs** | latest | Filters stored in URL → shareable links |
-| Local state | **Zustand** | 4.x | Compare-cart and UI ephemeral state |
-| Icons | **Lucide** | latest | Bundled with shadcn/ui |
-| Formatting | `Intl.NumberFormat('id-ID')` | native | IDR currency formatting |
+| Framework | Next.js 15 (App Router) | **Next.js 15.1.6** | unchanged |
+| Language | TypeScript 5 | **TypeScript 5.7** | unchanged |
+| Runtime | React 19 | **React 19** | unchanged |
+| Styling | Tailwind CSS 4 | **Tailwind CSS 3.4** | 3.x is stable; 4.x had churning APIs at scaffold time |
+| UI primitives | shadcn/ui | hand-rolled Tailwind | deferred — same accessibility patterns, no CLI dependency, easier to swap in later |
+| Tables | TanStack Table 8 | hand-rolled `<table>` | dataset is <200 rows; HOC sort works fine |
+| Charts | Recharts 2 | **Recharts 2.15** | unchanged |
+| Filter state | nuqs | local React state | deferred — easy follow-up to gain shareable filter URLs |
+| Local state | Zustand | **Zustand 5** (persist middleware) | bumped from 4 to 5 |
+| Icons | Lucide | none | none needed for v0.1 UI |
+| Formatting | `Intl.NumberFormat('id-ID')` | custom `formatIdr` returning `Rp 2,3 jt` | small wrapper for compact display |
 
 ### ETL (data pipeline)
 
-| Layer | Choice | Reason |
-|---|---|---|
-| Language | **Python 3.12+** | Already installed; pandas familiarity |
-| Excel reader | **openpyxl** + **pandas** | Already installed |
-| Output | **Plain JSON** | No DB; direct app consumption |
-| Validation | Manual asserts + console report | 150 rows; pydantic is overkill |
+| Layer | Choice |
+|---|---|
+| Language | **Python 3.10+** (CI uses 3.12) |
+| Excel reader | **openpyxl** + **pandas** (pinned in `requirements.txt`) |
+| Output | Plain JSON, committed to `public/data/` |
+| Validation | Console quality report (per-sheet counts, missing fields) |
 
 ### Tooling & ops
 
 | Concern | Choice |
 |---|---|
-| Package manager | **pnpm** (preferred) or npm |
-| Linter / formatter | **ESLint** + **Prettier** (Next.js defaults) |
-| Type checker | **tsc --noEmit** in CI |
-| VCS | **Git** |
-| Remote | **GitHub** (private repo) |
-| Hosting | **Vercel** (Hobby/free tier) |
-| CI/CD | Vercel auto-deploy on `git push` to `main` |
-| Domain | Vercel subdomain (e.g. `soldex.vercel.app`) — custom domain optional |
-| Analytics | None initially; **Vercel Analytics** (free tier) optional later |
-| Error tracking | None initially |
+| Package manager | **npm** (lockfile committed) |
+| Linter | **ESLint** via `next lint` (`next/core-web-vitals`) |
+| Formatter | **Prettier** (`.prettierrc` at repo root) |
+| Editor consistency | `.editorconfig` |
+| Node pin | `.nvmrc` = `20` (CI pins inline) |
+| VCS | **Git**, public repo on GitHub |
+| Hosting | **GitHub Pages** (free, no card, public-repo friendly) |
+| CI/CD | **GitHub Actions** — `.github/workflows/deploy.yml` runs on push to `main` |
+| URL | `https://muhbrohim.github.io/soldex/` (base path set automatically from repo name) |
+| Analytics | None |
+| Error tracking | None |
 
 ### Explicitly NOT used (and why)
 
@@ -163,9 +181,8 @@ Security model: **obscurity, not authentication.** Acceptable for non-sensitive 
 | Database (Postgres / SQLite / Supabase) | Dataset is tiny and static; JSON is faster |
 | Auth (NextAuth, Clerk) | Friends-only; obscurity is enough for v0 |
 | API layer / tRPC | No runtime data; everything is build-time |
-| State manager beyond Zustand | Overkill for a CRUD-less browse app |
 | CMS (Sanity, Contentful) | The xlsx *is* the CMS |
-| Docker | Vercel handles the runtime; nothing to containerize |
+| Docker | The host handles the runtime; nothing to containerize |
 | Storybook | Component count is small |
 | Tests (Jest, Playwright) | Deferred to post-v1 if app stabilizes |
 
@@ -173,9 +190,9 @@ Security model: **obscurity, not authentication.** Acceptable for non-sensitive 
 
 ## 6. Project layout
 
-> Note: layout was flattened from the original `script/shoe-app/` sketch.
-> The Next.js app is now the repo root, which is idiomatic for a single-app
-> repo and avoids "Root Directory" overrides on every host.
+> The original spec sketched a nested `script/shoe-app/` layout. That was
+> flattened to the repo root before first commit — idiomatic for a single-app
+> repo and removes the need for "Root Directory" overrides on every host.
 
 ```
 soldex/                                     ← repo root = the Next.js app
@@ -187,87 +204,88 @@ soldex/                                     ← repo root = the Next.js app
 │   ├── insights/page.tsx                   ← /insights (charts)
 │   └── about/page.tsx                      ← /about (legend, disclaimer)
 ├── components/
-│   ├── BrowseView.tsx
-│   ├── ShoeDetail.tsx
-│   ├── ComparePage.tsx
-│   ├── InsightsView.tsx
+│   ├── BrowseView.tsx                      ← sidebar filters + sortable table
+│   ├── ShoeDetail.tsx                      ← grouped stats + similar/same-brand/same-foam lists
+│   ├── ComparePage.tsx                     ← radar + diff table + share link
+│   ├── InsightsView.tsx                    ← all 6 charts
 │   └── CompareBar.tsx                      ← floating "Compare (n)" pill
 ├── lib/
 │   ├── types.ts                            ← Shoe, Meta, Filters
-│   ├── data.ts                             ← typed import of shoes.json
-│   ├── filter.ts                           ← pure filter/sort fns
-│   ├── derive.ts                           ← derived-field helpers
-│   └── format.ts                           ← formatIdr, formatGrams, formatPct
+│   ├── data.ts                             ← typed import of shoes.json/meta.json
+│   ├── filter.ts                           ← pure filter + sort fns
+│   ├── derive.ts                           ← similar() + TYPE_LABEL map
+│   └── format.ts                           ← formatIdr, formatGrams, formatPct, formatMm
 ├── store/
-│   └── compare.ts                          ← Zustand store (max 4 ids)
-├── styles/globals.css
+│   └── compare.ts                          ← Zustand store, persisted, MAX_COMPARE=4
+├── styles/globals.css                      ← Tailwind + small dark-theme overrides
 ├── public/data/
 │   ├── shoes.json                          ← generated, committed
-│   └── meta.json
+│   └── meta.json                           ← generated, committed
 ├── data/
 │   ├── EnergyReturn-ShockAbsorption.xlsx   ← source of truth
-│   └── EnergyReturn-ShockAbsorption.md     ← human-readable conversion
+│   └── EnergyReturn-ShockAbsorption.md     ← human-readable conversion (auto)
 ├── scripts/
 │   └── build_data.py                       ← ETL: xlsx → public/data/*.json
 ├── docs/
 │   └── PROJECT.md                          ← this document
 ├── .github/workflows/deploy.yml            ← GH Pages CI
-├── package.json
+├── package.json · package-lock.json
 ├── tsconfig.json
-├── next.config.mjs
-├── tailwind.config.js
-├── postcss.config.mjs
+├── next.config.mjs                         ← output: 'export', base path from env
+├── tailwind.config.js · postcss.config.mjs
 ├── requirements.txt                        ← Python ETL deps
-├── .nvmrc · .editorconfig · .eslintrc.json · .prettierrc
+├── .nvmrc · .editorconfig · .eslintrc.json · .prettierrc · .gitattributes
 ├── .gitignore
-├── LICENSE
+├── LICENSE                                 ← MIT
 └── README.md                               ← dev / data-update / deploy
 ```
 
 ---
 
-## 7. Pages & UX
+## 7. Pages & UX (as shipped)
 
 ### `/` — Browse
 
-- **Layout:** left filter sidebar (collapsible on mobile), main result table
-- **Filters:** brand multi, type, foam, price range (IDR), weight range, HER min, FER min, drop range, category sheets toggle, free-text search
-- **Table:** sortable columns, sticky header, column-visibility picker, "Add to compare" checkbox per row
-- **Top bar:** result count, reset filters, floating "Compare (n)" button
-- **URL state:** every filter and sort encoded in `?` query string
+- Left filter sidebar (sticky on desktop, stacks on mobile)
+- Filters: free-text search · brand · type · foam · sheet · max price · max weight · min HER · min FER · min/max drop
+- Table: 14 columns, sortable by any numeric or text column, sticky header, "+ compare" checkbox per row
+- Header line shows `N of TOTAL shoes · data <date> · compare n/4`
+- Reset-filters button
 
 ### `/compare?ids=a,b,c,d`
 
 - Up to 4 shoes side-by-side
-- Header strip: brand, version, price, weight
-- Radar chart: HER, FER, HSA, FSA, TRAC, m-soft (normalized 0–1)
-- Bar charts: stack heights, durability
-- Diff table: every numeric field; best value per row highlighted
-- Owner notes per shoe (raw text)
-- Copy-share-link button
+- Header cards: brand, version, price, weight, drop, color-keyed swatch
+- Radar chart: HER, FER, HSA, FSA, TRAC, m-soft (each normalized to a sensible axis max)
+- Diff table: 15 numeric fields; best value per row highlighted in accent color (direction-aware — lower price wins, higher HER wins)
+- Owner notes per shoe (`minus · conclusion · re-buy`)
+- Copy-share-link button (writes `?ids=` URL to clipboard)
+- URL `?ids=` overrides and syncs into the Zustand store on load
 
 ### `/shoe/[id]`
 
-- All fields grouped: Performance · Geometry · Outsole · Midsole · Notes
-- "Similar shoes" — top 5 by Euclidean distance on (HER, FER, weight, drop, stack)
-- "Same brand" and "Same foam" lists
-- Back button preserves prior filter state
+- Grouped stat tiles: Performance · Geometry · Midsole/Outsole · Price
+- Owner notes block when present
+- "Similar shoes" — top 5 by Euclidean distance over z-scored HER/FER/weight/drop/heel
+- "More from this brand" and "Same foam" lists (top 6 each)
+- Add/remove from compare directly from the detail page
+- Back link to browse
 
 ### `/insights`
 
-Pure-data charts, no commentary:
+Pure-data charts, no commentary, all rendered with Recharts:
 
 1. Scatter — HER vs Price (color = brand)
 2. Scatter — HER vs Weight (Pareto frontier highlighted)
 3. Bar — avg HER by foam type (with sample size)
 4. Bar — avg HER by brand (with sample size)
 5. Histogram — drop distribution
-6. Histogram — price distribution
+6. Histogram — price distribution (M IDR bins)
 
 ### `/about`
 
 - Field legend (the dictionary from §3)
-- Data-source note + last-updated date
+- Data-source note + last-updated date pulled from `meta.generatedAt`
 - Disclaimer: measurements are personal, methodology is informal
 
 ---
@@ -277,102 +295,115 @@ Pure-data charts, no commentary:
 `scripts/build_data.py` responsibilities:
 
 1. Load all 13 sheets via `pandas.ExcelFile(..., engine="openpyxl")`
-2. Detect header rows dynamically (first row matching `Type|Brand|Version` or `No|Brand|Version`)
-3. Skip junk rows: `average`, fully blank, summary totals
-4. Coerce types: round floats to 2 dp, `Pr` → int, `torsRigid` strings (`4out5`) → null or normalized 0–1
-5. Slug ID = `slugify(brand + " " + version)`
-6. Dedupe by ID; merge `categories[]` from sheet provenance, take richest record
-7. Compute derived fields (`avgEr`, `avgSa`, `herMinusFer`, `valueIdx`)
-8. Emit `public/data/shoes.json` and `public/data/meta.json`
-9. Print a quality report: rows in vs rows kept, dropped rows reasoned, shoes missing critical fields
+2. Walk row-by-row; treat any row containing `Brand` + `Version` + at least one of HER/HSA/FER/FSA as an active schema
+3. Use that schema for subsequent rows until another header / blank / `average` row
+4. Skip junk: fully blank rows, `average`-named summary rows
+5. Coerce types: round floats to 2 dp, `Pr` → int, `4out5`-style strings → fractional float
+6. Slug ID = `slugify(brand + " " + version)`
+7. Dedupe by ID; merge `categories[]` from sheet provenance; keep the richer record
+8. Compute derived fields (`avgEr`, `avgSa`, `herMinusFer`, `valueIdx`)
+9. Emit `public/data/shoes.json` and `public/data/meta.json`
+10. Print a quality report: per-sheet rows kept, total raw rows, unique shoes, missing HER/FER, missing price
 
-### `meta.json` shape
+### `meta.json` shape (live values)
 
 ```json
 {
   "generatedAt": "2026-05-30",
-  "shoeCount": 152,
-  "brands": ["Adidas", "Asics", "Brooks", "..."],
-  "foams": ["A-TPU", "EVA", "PEBA", "..."],
-  "types": ["R", "D", "DC", "C", "S"],
-  "categories": ["INTERESTED", "RACERS", "DAILY", "..."],
+  "shoeCount": 174,
+  "brands": ["Adidas", "Altra", "Asics", "Brooks", "Hoka", "Mizuno", "NB", "Nike", "ON", "On", "Ortuseight", "Puma", "Reebok", "Salomon", "Saucony", "Skechers", "Topo", "Under Armour"],
+  "foams": ["A-TPU", "A-TPU/EVA", "A-TPU/TPEE", "EVA", "PEBA", "PEBA/EVA", "POE", "TPE", "TPEE", "TPU", "eTPU"],
+  "types": ["C", "D", "DC", "M", "R", "RET", "S"],
+  "categories": ["INTERESTED", "MEGABLAST", "DAILY", "MAXIMALIST", "SUPER", "TOP5TRAINER", "HYPED", "RACERS", "HOKA", "PUMA", "60>HER>55", "70>HER>60", "HER>70"],
   "ranges": {
     "her": [44.2, 80.6],
     "fer": [45.9, 82.6],
     "weightG": [99, 335],
     "priceIdr": [2000000, 11000000],
-    "drop": [5.2, 14.0]
+    "drop": [3.2, 14.0]
   }
 }
 ```
+
+> Known data-quality items to clean up later: `ON` and `On` both appear as
+> distinct brands (case mismatch in the source); 113/174 shoes are missing
+> a price; some sheets (TOP5TRAINER, HOKA, PUMA) use a layout the ETL
+> currently can't parse and contribute 0 rows.
 
 ---
 
 ## 9. Update workflow
 
 ```
-edit xlsx
-  → python shoe-app/scripts/build_data.py
-  → review console quality report
+edit data/EnergyReturn-ShockAbsorption.xlsx
+  → npm run data
+  → review the console quality report
   → git add -A && git commit -m "data: refresh YYYY-MM-DD"
   → git push
-  → Vercel auto-deploys (~30–60s)
+  → GitHub Actions auto-deploys (~2 min)
   → friends see updated data on next page load
 ```
 
-End-to-end: about 1 minute when nothing has broken.
+End-to-end: about 2 minutes when nothing has broken.
 
 ---
 
 ## 10. Roadmap
 
-### v0.1 — Foundations
-- ETL script + canonical JSON
-- Next.js scaffold + Tailwind + shadcn/ui
-- Static `/about` page
-- Deployed to Vercel under unlisted URL
+### v0.1 — Foundations ✅ SHIPPED
+- [x] ETL script + canonical JSON
+- [x] Next.js scaffold + Tailwind + dark theme
+- [x] Static `/about` page
+- [x] Deployed to GitHub Pages under unlisted URL
 
-### v0.2 — Browse
-- Filter sidebar (all filters listed in §7)
-- Sortable table + detail drawer
-- URL-encoded filter state
+### v0.2 — Browse ✅ SHIPPED
+- [x] Filter sidebar (all filters listed in §7)
+- [x] Sortable table + per-row compare checkbox
+- [ ] URL-encoded filter state (deferred — currently local state only)
+- [ ] Detail drawer (replaced with full `/shoe/[id]` page)
 
-### v0.3 — Compare
-- Compare cart (Zustand)
-- `/compare` page with radar + diff table
-- Share-link button
+### v0.3 — Compare ✅ SHIPPED
+- [x] Compare cart (Zustand, persisted, max 4)
+- [x] `/compare` page with radar + diff table
+- [x] Share-link button (`?ids=` query)
 
-### v0.4 — Insights
-- All 6 charts on `/insights`
+### v0.4 — Insights ✅ SHIPPED
+- [x] All 6 charts on `/insights`
 
-### v0.5 — Polish
-- Mobile layout pass
-- Empty states, loading skeletons
-- IDR formatting (`Rp 3,2jt`)
-- Dark mode (optional)
+### v0.5 — Polish (in progress)
+- [x] Dark mode (default; only mode)
+- [x] IDR formatting (`Rp 3,2 jt`)
+- [ ] Mobile layout pass (basic responsiveness works; needs touch tweaks)
+- [ ] Empty states, loading skeletons
 
 ### Post-v1 backlog
 - Shared-passphrase splash gate
-- Vercel Analytics
-- "Saved views" via localStorage
+- "Saved views" via `localStorage`
 - Export filtered table to CSV
 - Per-shoe photo (manual upload to `/public/img/`)
 - i18n (EN ↔ ID)
+- Swap in **shadcn/ui** primitives if/when complexity warrants it
+- Swap in **nuqs** for URL-state filter sharing
+- Add **TanStack Table** when row count justifies virtualization
+- Clean up data dupes (`ON` vs `On`); extend ETL to cover TOP5TRAINER/HOKA/PUMA layouts
 
 ---
 
-## 11. Decisions locked for v1
+## 11. Decisions (locked at v0.1)
 
 | # | Question | Decision |
 |---|---|---|
 | 1 | Project name | **Soldex** (Sole Index) |
-| 2 | Repo location | `script/shoe-app/` |
-| 3 | GitHub | Private repo (confirm at deploy time) |
-| 4 | UI language | English only for v1 |
-| 5 | Compare slot count | 4 |
-| 6 | Insights charts | All 6 |
-| 7 | Dark mode + mobile polish | v0.5 (within v1) |
-| 8 | Domain | `soldex.vercel.app` subdomain; custom domain optional later |
+| 2 | Repo location | `github.com/muhbrohim/soldex` (flat, app at repo root) |
+| 3 | GitHub visibility | **Public** (required for free GitHub Pages) — data has no PII |
+| 4 | License | **MIT** |
+| 5 | UI language | English only for v1 |
+| 6 | Compare slot count | 4 |
+| 7 | Insights charts | All 6 |
+| 8 | Dark mode + mobile polish | v0.5 (within v1) |
+| 9 | Host | **GitHub Pages** — `https://muhbrohim.github.io/soldex/` (custom domain optional later) |
+| 10 | Package manager | **npm** (lockfile committed) |
+| 11 | Generated JSON | Committed under `public/data/` — hosts without Python can still deploy |
 
 ---
 
@@ -382,16 +413,18 @@ End-to-end: about 1 minute when nothing has broken.
 |---|---|
 | Source xlsx schema drifts (new columns, renamed sheets) | ETL prints a clear report; new fields default to null in JSON; UI tolerates missing fields |
 | Mid-table header rows in `INTERESTED` confuse the parser | Header detection is row-pattern-based, not row-index-based |
-| Inconsistent torsRigid / re-BUY values | Coerce or null in ETL; UI treats as optional |
+| Inconsistent `torsRigid` / `re-BUY` values | Coerce-or-null in ETL; UI treats as optional |
+| Brand/foam typos cause duplicate filter chips | Manual cleanup in xlsx; could add a normalization map in ETL later |
 | Friends accidentally share URL publicly | No PII in data; can add passphrase gate later |
-| Dataset grows beyond ~1000 shoes | JSON still fine up to ~5MB; switch to chunked loading only if needed |
-| Vercel free-tier limits | 100 GB/month bandwidth — far beyond friend-circle usage |
+| Dataset grows beyond ~1000 shoes | JSON still fine up to ~5 MB; switch to chunked loading only if needed |
+| `npm install` lockfile drift between OSes | CI uses `npm install` (not `npm ci`) to side-step Windows↔Linux SWC binary mismatch |
+| GitHub Pages limits | Soft 1 GB / 100 GB-month — orders of magnitude beyond friend-circle usage |
 
 ### Assumptions
 
 - Owner is comfortable running a Python script and `git push` for data refreshes
 - 150–500 shoes is the realistic ceiling for this dataset
-- No legal concerns publishing measurements (data is personal/observational)
+- No legal concerns publishing measurements (data is personal / observational)
 - Friend group is < 50 people
 
 ---
@@ -401,10 +434,11 @@ End-to-end: about 1 minute when nothing has broken.
 - **HER / FER** — Heel / Forefoot Energy Return; higher = more bouncy
 - **HSA / FSA** — Heel / Forefoot Shock Absorption; higher = more cushioned
 - **DROP** — heel stack minus forefoot stack, in mm
-- **PEBA, A-TPU, EVA, TPEE, POE, TPE** — midsole foam chemistries
-- **Type R / D / DC / C / S** — Race, Daily, Daily-Cushion, Cushion, Speed
+- **PEBA, A-TPU, EVA, TPEE, POE, TPE, TPU, eTPU** — midsole foam chemistries
+- **Type R / D / DC / C / S / M / RET** — Race, Daily, Daily-Cushion, Cushion, Speed, Maximalist, Retired-race
 - **Pr** — Price in Indonesian Rupiah
+- **valueIdx** — `avgEr / (price / 1,000,000)` — higher means more energy return per million IDR
 
 ---
 
-*This is a living document. Edit freely as decisions get made.*
+*This is a living document. Edit freely as the project evolves.*
