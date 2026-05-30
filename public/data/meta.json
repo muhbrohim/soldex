@@ -1,0 +1,83 @@
+{
+  "generatedAt": "2026-05-30",
+  "shoeCount": 174,
+  "brands": [
+    "Adidas",
+    "Altra",
+    "Asics",
+    "Brooks",
+    "Hoka",
+    "Mizuno",
+    "NB",
+    "Nike",
+    "ON",
+    "On",
+    "Ortuseight",
+    "Puma",
+    "Reebok",
+    "Salomon",
+    "Saucony",
+    "Skechers",
+    "Topo",
+    "Under Armour"
+  ],
+  "foams": [
+    "A-TPU",
+    "A-TPU/EVA",
+    "A-TPU/TPEE",
+    "EVA",
+    "PEBA",
+    "PEBA/EVA",
+    "POE",
+    "TPE",
+    "TPEE",
+    "TPU",
+    "eTPU"
+  ],
+  "types": [
+    "C",
+    "D",
+    "DC",
+    "M",
+    "R",
+    "RET",
+    "S"
+  ],
+  "categories": [
+    "INTERESTED",
+    "MEGABLAST",
+    "DAILY",
+    "MAXIMALIST",
+    "SUPER",
+    "TOP5TRAINER",
+    "HYPED",
+    "RACERS",
+    "HOKA",
+    "PUMA",
+    "60>HER>55",
+    "70>HER>60",
+    "HER>70"
+  ],
+  "ranges": {
+    "her": [
+      44.2,
+      80.6
+    ],
+    "fer": [
+      45.9,
+      82.6
+    ],
+    "weightG": [
+      99,
+      335
+    ],
+    "priceIdr": [
+      2000000,
+      11000000
+    ],
+    "drop": [
+      3.2,
+      14.0
+    ]
+  }
+}

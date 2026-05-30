@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { background: #0b0b0d; color: #e7e7ea; }
+body { font-feature-settings: 'tnum' 1, 'ss01' 1; }
+
+.num { font-variant-numeric: tabular-nums; }
+.kbd { background:#15161a; border:1px solid #2a2b30; border-radius:6px; padding:1px 6px; font-family: ui-monospace, monospace; font-size: 12px; }
