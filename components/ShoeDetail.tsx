@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import type { Shoe } from '@/lib/types';
 import { formatPct } from '@/lib/format';
 import { similar, TYPE_LABEL } from '@/lib/derive';
@@ -12,6 +14,9 @@ import {
 } from '@/lib/columns';
 import { computeAllFits, PROFILE_LABEL, type ProfileKey } from '@/lib/preferences';
 import { HeaderTip } from './HeaderTip';
+import { useAuth } from './AuthProvider';
+import { softDeleteShoe } from '@/lib/mutations';
+import { useSWRConfig } from 'swr';
 
 // Which columns to surface per detail-page section.
 const SECTIONS: { title: string; group: ColumnGroup; cols: ColumnKey[] }[] = [
@@ -56,6 +61,25 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
   const compare = useCompare();
   const checked = compare.ids.includes(shoe.id);
   const fits = computeAllFits(shoe, all);
+  const { user } = useAuth();
+  const router = useRouter();
+  const { mutate } = useSWRConfig();
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function onDelete() {
+    setDeleting(true);
+    try {
+      await softDeleteShoe(shoe.id, user?.id ?? null);
+      // invalidate all shoes lists so the row disappears from browse
+      await mutate((key) => Array.isArray(key) && key[0] === 'shoes');
+      router.push('/');
+      router.refresh();
+    } catch (e) {
+      alert(`Delete failed: ${e instanceof Error ? e.message : String(e)}`);
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -87,7 +111,7 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
             ))}
           </div>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           <button
             onClick={() => compare.toggle(shoe.id)}
             className={`text-sm px-3 py-1.5 rounded border ${
@@ -96,6 +120,44 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
           >
             {checked ? 'In compare ✓' : '+ Add to compare'}
           </button>
+          {user && (
+            <>
+              <Link
+                href={`/shoe/${shoe.id}/edit`}
+                className="text-sm px-3 py-1.5 rounded border border-line hover:bg-panel"
+              >
+                Edit
+              </Link>
+              {!confirming ? (
+                <button
+                  onClick={() => setConfirming(true)}
+                  className="text-sm px-3 py-1.5 rounded border border-rose-900/60 text-rose-300 hover:bg-rose-900/20"
+                  type="button"
+                >
+                  Delete
+                </button>
+              ) : (
+                <span className="flex gap-1 items-center text-xs">
+                  <span className="text-muted">Sure?</span>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    disabled={deleting}
+                    className="px-2 py-1 bg-rose-700 text-white rounded disabled:opacity-50"
+                  >
+                    {deleting ? '…' : 'Yes, delete'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    className="px-2 py-1 border border-line rounded text-muted"
+                  >
+                    Cancel
+                  </button>
+                </span>
+              )}
+            </>
+          )}
           <Link href="/" className="text-sm text-muted hover:text-ink">
             ← Back
           </Link>

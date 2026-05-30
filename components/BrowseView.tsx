@@ -16,6 +16,7 @@ import {
 import { computeThresholds, getBandLabel } from '@/lib/bands';
 import { HeaderTip } from './HeaderTip';
 import { ColumnPicker, loadVisibleColumns } from './ColumnPicker';
+import { useAuth } from './AuthProvider';
 
 export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
   const [f, setF] = useState<Filters>(EMPTY_FILTERS);
@@ -23,6 +24,7 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [visible, setVisible] = useState<ColumnKey[]>(DEFAULT_VISIBLE);
   const compare = useCompare();
+  const { user } = useAuth();
 
   // hydrate visible cols from localStorage after mount (SSR-safe)
   useEffect(() => {
@@ -145,6 +147,14 @@ export function BrowseView({ shoes, meta }: { shoes: Shoe[]; meta: Meta }) {
             <span className="text-muted font-normal">of {shoes.length} shoes</span>
           </h1>
           <div className="flex items-center gap-3">
+            {user && (
+              <Link
+                href="/shoe/new"
+                className="text-xs px-2 py-1 rounded bg-accent text-bg font-medium hover:opacity-90"
+              >
+                + New shoe
+              </Link>
+            )}
             <p className="text-xs text-muted">
               data {meta.generatedAt} · compare {compare.ids.length}/{MAX_COMPARE}
             </p>
