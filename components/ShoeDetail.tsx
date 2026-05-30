@@ -17,6 +17,7 @@ import { HeaderTip } from './HeaderTip';
 import { useAuth } from './AuthProvider';
 import { softDeleteShoe } from '@/lib/mutations';
 import { useSWRConfig } from 'swr';
+import { RevisionsPanel } from './RevisionsPanel';
 
 // Which columns to surface per detail-page section.
 const SECTIONS: { title: string; group: ColumnGroup; cols: ColumnKey[] }[] = [
@@ -220,6 +221,8 @@ export function ShoeDetail({ shoe, all }: { shoe: Shoe; all: Shoe[] }) {
       {!!sameFoam.length && (
         <ShoeList title={`Same foam · ${shoe.foam}`} items={sameFoam} />
       )}
+
+      <RevisionsPanel shoeId={shoe.id} />
     </div>
   );
 }
