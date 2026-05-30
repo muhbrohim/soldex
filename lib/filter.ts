@@ -26,25 +26,14 @@ export function applyFilters(shoes: Shoe[], f: Filters): Shoe[] {
   });
 }
 
-export type SortKey =
-  | 'brand'
-  | 'version'
-  | 'her'
-  | 'fer'
-  | 'avgEr'
-  | 'hsa'
-  | 'fsa'
-  | 'avgSa'
-  | 'weightG'
-  | 'priceIdr'
-  | 'drop'
-  | 'valueIdx';
+// Any Shoe field (string or number) can be a sort key.
+export type SortKey = keyof Shoe;
 
 export function sortShoes(rows: Shoe[], key: SortKey, dir: 'asc' | 'desc'): Shoe[] {
   const m = dir === 'asc' ? 1 : -1;
   return [...rows].sort((a, b) => {
-    const av = a[key];
-    const bv = b[key];
+    const av = a[key] as unknown;
+    const bv = b[key] as unknown;
     if (av == null && bv == null) return 0;
     if (av == null) return 1;
     if (bv == null) return -1;
