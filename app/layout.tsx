@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import '../styles/globals.css';
 import { CompareBar } from '@/components/CompareBar';
+import { Logo } from '@/components/Logo';
 
 export const metadata: Metadata = {
   title: 'Soldex — Sole Index',
@@ -15,8 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen">
         <header className="border-b border-line bg-panel/60 backdrop-blur sticky top-0 z-30">
           <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6 text-sm">
-            <Link href="/" className="font-semibold text-ink">
-              Soldex<span className="text-muted font-normal"> · sole index</span>
+            <Link href="/" className="flex items-center gap-2 font-semibold text-ink">
+              <Logo size={20} className="text-ink" />
+              <span>
+                soldex
+                <span className="text-muted font-normal"> · sole index</span>
+              </span>
             </Link>
             <div className="flex gap-4 text-muted">
               <Link href="/" className="hover:text-ink">Browse</Link>
