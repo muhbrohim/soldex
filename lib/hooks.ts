@@ -52,6 +52,8 @@ function rowToShoe(r: Record<string, unknown>): Shoe {
     conclusion: s('conclusion'),
     reBuy: s('re_buy'),
     foam: s('foam'),
+    hasPlate: r.has_plate == null ? null : (r.has_plate as boolean),
+    hasRocker: r.has_rocker == null ? null : (r.has_rocker as boolean),
     categories: Array.isArray(r.categories) ? (r.categories as string[]) : [],
   };
 }

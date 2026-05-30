@@ -3,11 +3,8 @@
 // transparent score of how each shoe aligns with the owner's stated taste
 // for three usage profiles: DAILY, MAX, SUPER.
 //
-// Two criteria from the original matrix are NOT scored here because they are
-// not measured in the dataset:
-//   - rocker (geometry) — not in the source spreadsheet
-//   - plate presence — not a recorded boolean
-// They are documented in /docs/preferences as caveats.
+// has_plate and has_rocker are tri-state booleans (true / false / unknown).
+// Unknown values are skipped (reducing coverage %) rather than penalized.
 
 import type { Shoe } from './types';
 
@@ -19,60 +16,79 @@ export const PROFILE_LABEL: Record<ProfileKey, string> = {
   super: 'Super',
 };
 
-// Direction: +1 = higher is better for this profile; -1 = lower is better.
-// `weight` is the relative importance of each criterion within a profile.
-type CriterionDir = 1 | -1;
+// Numeric criterion: +1 = higher is better, -1 = lower is better.
+// Boolean criterion: true = prefer true, false = prefer false, null = neutral.
+type NumDir = 1 | -1;
+type BoolPref = boolean | null;
 
-interface Criterion {
-  field: keyof Shoe; // numeric field on Shoe
-  label: string; // short label for the breakdown UI
-  // Direction per profile.
-  daily: CriterionDir;
-  max: CriterionDir;
-  super: CriterionDir;
-  weight?: number; // optional weight; default 1
+interface NumericCriterion {
+  kind: 'num';
+  field: keyof Shoe;
+  label: string;
+  daily: NumDir;
+  max: NumDir;
+  super: NumDir;
+  weight?: number;
 }
+
+interface BoolCriterion {
+  kind: 'bool';
+  field: 'hasPlate' | 'hasRocker';
+  label: string;
+  daily: BoolPref;
+  max: BoolPref;
+  super: BoolPref;
+  weight?: number;
+}
+
+type Criterion = NumericCriterion | BoolCriterion;
 
 export const CRITERIA: Criterion[] = [
   // Performance — higher is better for all three.
-  { field: 'her', label: 'Heel ER %', daily: 1, max: 1, super: 1 },
-  { field: 'fer', label: 'Fore ER %', daily: 1, max: 1, super: 1 },
-  { field: 'hsa', label: 'Heel SA', daily: 1, max: 1, super: 1 },
-  { field: 'fsa', label: 'Fore SA', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'her', label: 'Heel ER %', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'fer', label: 'Fore ER %', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'hsa', label: 'Heel SA', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'fsa', label: 'Fore SA', daily: 1, max: 1, super: 1 },
 
   // Structure — daily wants flexible (low torsRigid + low flexStiff);
   // max + super want rigid (high).
-  { field: 'torsRigid', label: 'Twist rigidity', daily: -1, max: 1, super: 1 },
-  { field: 'flexStiff', label: 'Bend stiffness', daily: -1, max: 1, super: 1 },
+  { kind: 'num', field: 'torsRigid', label: 'Twist rigidity', daily: -1, max: 1, super: 1 },
+  { kind: 'num', field: 'flexStiff', label: 'Bend stiffness', daily: -1, max: 1, super: 1 },
 
   // Durability — higher is better for all three.
-  { field: 'oDurPct', label: 'Outsole dur %', daily: 1, max: 1, super: 1 },
-  { field: 'oStay', label: 'Outsole bond', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'oDurPct', label: 'Outsole dur %', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'oStay', label: 'Outsole bond', daily: 1, max: 1, super: 1 },
 
   // Weight — daily + super want light; max accepts heavy.
-  { field: 'weightG', label: 'Weight', daily: -1, max: 1, super: -1 },
+  { kind: 'num', field: 'weightG', label: 'Weight', daily: -1, max: 1, super: -1 },
 
   // Stability via forefoot flare (upFoam = mFore − width).
   // Daily prefers smaller flare, max + super prefer larger.
-  { field: 'upFoam', label: 'Forefoot flare', daily: -1, max: 1, super: 1 },
+  { kind: 'num', field: 'upFoam', label: 'Forefoot flare', daily: -1, max: 1, super: 1 },
 
   // Midsole softness — daily + max want firm (low mSoft), super wants soft.
-  { field: 'mSoft', label: 'Midsole softness', daily: -1, max: -1, super: 1 },
+  { kind: 'num', field: 'mSoft', label: 'Midsole softness', daily: -1, max: -1, super: 1 },
 
   // Price — all profiles prefer cheaper.
-  { field: 'priceIdr', label: 'Price', daily: -1, max: -1, super: -1 },
+  { kind: 'num', field: 'priceIdr', label: 'Price', daily: -1, max: -1, super: -1 },
 
   // Traction — higher is better for all three.
-  { field: 'trac', label: 'Traction', daily: 1, max: 1, super: 1 },
+  { kind: 'num', field: 'trac', label: 'Traction', daily: 1, max: 1, super: 1 },
+
+  // Pre-requisite booleans. Super wants both plate and rocker; daily/max
+  // are neutral. Unknown values are skipped, not penalized.
+  { kind: 'bool', field: 'hasPlate', label: 'Has plate', daily: null, max: null, super: true },
+  { kind: 'bool', field: 'hasRocker', label: 'Has rocker', daily: null, max: null, super: true },
 ];
 
-// Cached population stats per field.
+// Cached population stats per numeric field.
 type Stats = { mean: number; std: number };
 let STATS: Record<string, Stats> | null = null;
 
 function computeStats(shoes: Shoe[]): Record<string, Stats> {
   const out: Record<string, Stats> = {};
   for (const c of CRITERIA) {
+    if (c.kind !== 'num') continue;
     const vals = shoes
       .map((s) => s[c.field] as unknown)
       .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
@@ -96,33 +112,33 @@ export function primeStats(shoes: Shoe[]): void {
  * Per-criterion aligned score in [0, 1]: z-score clipped to ±2, oriented by
  * profile direction so that 1 = aligned with preference, 0 = strongly against.
  */
-function criterionScore(
+function numericScore(
   value: number | undefined,
   field: string,
-  dir: CriterionDir,
+  dir: NumDir,
   stats: Record<string, Stats>,
 ): number | null {
   if (value == null || !Number.isFinite(value)) return null;
   const s = stats[field];
   if (!s) return null;
   const z = (value - s.mean) / s.std;
-  const aligned = z * dir; // higher = more aligned
+  const aligned = z * dir;
   const clipped = Math.max(-2, Math.min(2, aligned));
-  return (clipped + 2) / 4; // map [-2, 2] -> [0, 1]
+  return (clipped + 2) / 4;
 }
 
 export interface ProfileBreakdown {
   field: string;
   label: string;
-  direction: 'higher' | 'lower';
-  value: number | null;
-  score: number | null; // 0–1 aligned, null if missing
+  direction: 'higher' | 'lower' | 'prefer-true' | 'prefer-false';
+  value: number | boolean | null;
+  score: number | null;
 }
 
 export interface ProfileFit {
   profile: ProfileKey;
-  score: number | null; // 0–100, null if no criteria available
-  coverage: number; // 0–1: fraction of criteria with data
+  score: number | null;
+  coverage: number;
   breakdown: ProfileBreakdown[];
 }
 
@@ -132,31 +148,57 @@ export function computeFit(
   shoes?: Shoe[],
 ): ProfileFit {
   if (!STATS && shoes) primeStats(shoes);
-  const stats = STATS ?? { _: { mean: 0, std: 1 } };
+  const stats = STATS ?? {};
 
   const breakdown: ProfileBreakdown[] = [];
   let sum = 0;
   let n = 0;
+  let active = 0;
   for (const c of CRITERIA) {
-    const dir = c[profile];
-    const v = shoe[c.field] as unknown;
-    const value = typeof v === 'number' ? v : null;
-    const score = criterionScore(value ?? undefined, c.field as string, dir, stats);
-    breakdown.push({
-      field: c.field as string,
-      label: c.label,
-      direction: dir === 1 ? 'higher' : 'lower',
-      value,
-      score,
-    });
-    if (score != null) {
-      const w = c.weight ?? 1;
-      sum += score * w;
-      n += w;
+    if (c.kind === 'num') {
+      const dir = c[profile];
+      const v = shoe[c.field] as unknown;
+      const value = typeof v === 'number' ? v : null;
+      const score = numericScore(value ?? undefined, c.field as string, dir, stats);
+      breakdown.push({
+        field: c.field as string,
+        label: c.label,
+        direction: dir === 1 ? 'higher' : 'lower',
+        value,
+        score,
+      });
+      active += 1;
+      if (score != null) {
+        const w = c.weight ?? 1;
+        sum += score * w;
+        n += w;
+      }
+    } else {
+      const pref = c[profile];
+      if (pref == null) continue; // neutral for this profile; not counted
+      active += 1;
+      const v = shoe[c.field];
+      const value = typeof v === 'boolean' ? v : null;
+      const score = value == null ? null : value === pref ? 1 : 0;
+      breakdown.push({
+        field: c.field,
+        label: c.label,
+        direction: pref ? 'prefer-true' : 'prefer-false',
+        value,
+        score,
+      });
+      if (score != null) {
+        const w = c.weight ?? 1;
+        sum += score * w;
+        n += w;
+      }
     }
   }
   const score = n > 0 ? +(100 * (sum / n)).toFixed(0) : null;
-  const coverage = +(breakdown.filter((b) => b.score != null).length / CRITERIA.length).toFixed(2);
+  const coverage =
+    active > 0
+      ? +(breakdown.filter((b) => b.score != null).length / active).toFixed(2)
+      : 0;
   return { profile, score, coverage, breakdown };
 }
 

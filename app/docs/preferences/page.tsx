@@ -10,10 +10,18 @@ const PROFILE_DESC: Record<ProfileKey, string> = {
     'Everyday training shoe: flexible, firm, light, durable, smaller forefoot flare, cheap. Rocker and plate are not required.',
   max: 'Maximum-cushion daily / long-run shoe: rigid (stable for tall stack), firm foam, heavier OK, durable, larger flare, cheap. Rocker and plate are not required.',
   super:
-    'Race/super-shoe: rigid plate underfoot, soft bouncy foam, light, durable, larger flare, rocker required, carbon plate accepted. The two pre-reqs (rocker + plate) are not measured in this dataset — treat the score as an upper bound.',
+    'Race/super-shoe: rigid plate underfoot, soft bouncy foam, light, durable, larger flare, rocker required, carbon plate accepted. Plate and rocker are now scored when known; shoes with unknown values just don\u2019t earn those points (lower coverage %).',
 };
 
-const DIR_WORD = (dir: 1 | -1) => (dir === 1 ? 'higher' : 'lower');
+const DIR_WORD = (
+  dir: 1 | -1 | boolean | null,
+): string => {
+  if (dir === 1) return 'higher';
+  if (dir === -1) return 'lower';
+  if (dir === true) return 'yes';
+  if (dir === false) return 'no';
+  return '—';
+};
 
 export default function PreferencesPage() {
   return (
@@ -76,20 +84,6 @@ export default function PreferencesPage() {
                 <td className="p-2 text-center">{DIR_WORD(c.super)}</td>
               </tr>
             ))}
-            <tr className="border-b border-line/60 text-muted italic">
-              <td className="p-2">Rocker</td>
-              <td className="p-2 font-mono text-xs">— not measured —</td>
-              <td className="p-2 text-center">optional</td>
-              <td className="p-2 text-center">optional</td>
-              <td className="p-2 text-center">required</td>
-            </tr>
-            <tr className="border-b border-line/60 text-muted italic">
-              <td className="p-2">Plate</td>
-              <td className="p-2 font-mono text-xs">— not measured —</td>
-              <td className="p-2 text-center">unaccept</td>
-              <td className="p-2 text-center">unaccept</td>
-              <td className="p-2 text-center">accept</td>
-            </tr>
           </tbody>
         </table>
       </div>

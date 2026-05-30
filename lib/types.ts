@@ -31,6 +31,9 @@ export interface Shoe {
   upFoam?: number;
   reBuy?: string;
   conclusion?: string;
+  // Pre-requisite booleans (RunRepeat-style). null = unknown.
+  hasPlate?: boolean | null;
+  hasRocker?: boolean | null;
   categories?: string[];
   // derived
   avgEr?: number;

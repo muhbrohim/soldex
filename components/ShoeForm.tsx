@@ -59,7 +59,7 @@ const FORM_GROUPS: ColumnGroup[] = [
   'value',
 ];
 
-type FormShoe = Partial<Shoe> & { hasPlate?: boolean | null; hasRocker?: boolean | null };
+type FormShoe = Partial<Shoe>;
 
 export function ShoeForm({
   initial,
@@ -76,8 +76,8 @@ export function ShoeForm({
 
   const [form, setForm] = useState<FormShoe>(() => ({
     ...initial,
-    hasPlate: (initial as Shoe & { hasPlate?: boolean | null } | undefined)?.hasPlate ?? null,
-    hasRocker: (initial as Shoe & { hasRocker?: boolean | null } | undefined)?.hasRocker ?? null,
+    hasPlate: initial?.hasPlate ?? null,
+    hasRocker: initial?.hasRocker ?? null,
   }));
   const [cats, setCats] = useState<string[]>(initial?.categories ?? []);
   const [busy, setBusy] = useState(false);
