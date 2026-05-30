@@ -2,7 +2,7 @@
 
 > **Soldex — Sole Index.** A personal, data-first running-shoe database for me and a few friends.
 
-**Status:** v0.1 shipped · live at https://muhbrohim.github.io/soldex/
+**Status:** v0.1 shipped; mid-migration to Vercel + Supabase (CRUD, auth, revisions)
 **Last updated:** 2026-05-30
 **Owner:** muhbrohim ([github.com/muhbrohim/soldex](https://github.com/muhbrohim/soldex))
 **Audience:** Personal use + a small circle of friends (unlisted URL)
@@ -10,12 +10,40 @@
 
 ---
 
+## 0. What changed since v0.1
+
+The original v0.1 was a fully static GitHub Pages site driven by a Python ETL
+over an xlsx. The current main branch has migrated the architecture:
+
+- **Hosting:** Vercel (Hobby), no static export.
+- **Backend:** Supabase (Postgres + Auth + RLS) is the new source of truth.
+  The bundled `public/data/*.json` is retained as a read-only fallback when
+  Supabase env vars are absent (keeps the site functional in CI and pre-prod).
+- **CRUD:** Trusted users (`esa`, `ibrathiel`) can sign in to add, edit,
+  soft-delete, and restore shoes via dashboard-provisioned accounts. Every
+  write produces an immutable row in `shoe_revisions` via a security-definer
+  trigger.
+- **Schema:** Adds `has_plate` / `has_rocker` (tri-state) and `categories`
+  (was: sheet membership). Soft delete via `deleted_at`.
+- **Bands:** Tertile thresholds replace fixed thresholds; computed from the
+  full population so labels stay stable under filtering.
+- **Preferences:** `has_plate` / `has_rocker` are now scored for the SUPER
+  profile (unknown = skipped, not penalized).
+- **Legacy:** xlsx + Python ETL moved to `legacy/` (kept for reference and
+  one-off regeneration of the bundled JSON).
+
+The rest of this document still describes the v0.1 spec as originally shipped;
+treat anything below that references GitHub Pages, static export, or build-time
+data as historical context.
+
+---
+
 ## 1. What this is
 
-Soldex is a small, public-but-unlisted web app that turns a hand-curated
-spreadsheet of running-shoe measurements
-(`data/EnergyReturn-ShockAbsorption.xlsx`) into a fast, filterable, comparable
-browsing experience.
+Soldex is a small, public-but-unlisted web app that started life as a
+filterable browser over a hand-curated spreadsheet of running-shoe
+measurements. The dataset now lives in Postgres; the spreadsheet is archived
+in `legacy/data/`.
 
 It is not a review site. It is not a recommender. It presents pure measured
 data and lets the viewer slice it however they want.

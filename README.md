@@ -3,40 +3,42 @@
 > **Sole Index** — a personal, data-first running-shoe database.
 > Pure measured data. No reviews, no opinions, no recommender.
 
-**Live:** https://muhbrohim.github.io/soldex/
-**Spec:** [docs/PROJECT.md](docs/PROJECT.md)
-**License:** MIT
+**Spec:** [docs/PROJECT.md](docs/PROJECT.md) · **License:** MIT
 
-Current dataset: **174 shoes** across **18 brands** and **11 foam families**, drawn from 13 sheets of a hand-curated xlsx. Filtering, sorting, comparison, and the insights charts all run entirely in the browser.
+Current dataset: **174 shoes** across **18 brands** and **11 foam families**.
+Filter, sort, compare, and explore the insights charts in a single client-side
+app. Trusted users (invite-only) can sign in to add, edit, soft-delete, and
+restore shoes, with every change recorded in an immutable revision log.
 
 ---
 
 ## Quick start
 
-Requirements: **Node 20+**, **Python 3.10+**, `git`.
+Requirements: **Node 20+**, `git`. (Python is only needed if you want to
+re-run the legacy xlsx ETL.)
 
 ```bash
-# 1. install JS deps
 npm install
-
-# 2. install Python ETL deps
-pip install -r requirements.txt
-
-# 3. (re)generate JSON from the xlsx
-npm run data
-
-# 4. dev server  →  http://localhost:3000
-npm run dev
+npm run dev   # http://localhost:3000
 ```
 
-## Production build
+The app runs against bundled JSON in `public/data/` by default, so no
+environment variables are required for development or read-only deploys.
 
-```bash
-npm run build      # static export to ./out
-npx serve out      # serve locally for sanity check
-```
+### Connecting to Supabase (CRUD)
 
-The site is fully static — no server runtime, no API routes, no database.
+1. Provision the schema in your Supabase project — see
+   [`supabase/README.md`](supabase/README.md) for the dashboard walk-through.
+2. Copy `.env.local.example` to `.env.local` and fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (only for `npm run migrate`)
+3. Seed the database from the bundled JSON: `npm run migrate`.
+4. Create user accounts in the Supabase Auth dashboard (emails follow the
+   `<username>@soldex.local` convention).
+
+When the public env vars are set the SWR hooks fetch from the `shoes_full`
+view; otherwise they transparently fall back to the bundled JSON.
 
 ---
 
@@ -44,105 +46,78 @@ The site is fully static — no server runtime, no API routes, no database.
 
 | Route | What it does |
 |---|---|
-| `/` | Browse — filter sidebar (search, brand, type, foam, sheet, price, weight, HER, FER, drop) + sortable table |
-| `/shoe/[id]` | Detail — all fields grouped (Performance · Geometry · Midsole/Outsole · Price · Notes) + similar shoes |
-| `/compare` | Up to 4 shoes side-by-side with radar chart and best-per-row diff table; share via `?ids=a,b,c,d` |
-| `/insights` | 6 charts — HER×Price, HER×Weight Pareto, avg HER by foam, avg HER by brand, drop & price histograms |
-| `/about` | Field legend, data-source note, disclaimer |
+| `/` | Browse — filter sidebar + sortable table with inline band badges |
+| `/shoe/[id]` | Detail — grouped fields, similar shoes, profile-fit scores, revisions |
+| `/shoe/new`, `/shoe/[id]/edit` | Auth-gated forms generated from `COLUMN_META` |
+| `/compare` | Up to 4 shoes side-by-side with radar chart and diff table |
+| `/insights` | Seven charts: scatter, Pareto, bars, histograms |
+| `/trash` | Auth-gated list of soft-deleted shoes with one-click restore |
+| `/login` | Username + password (invite-only) |
+| `/docs/*`, `/about` | Field reference, methodology, FAQ, glossary, preferences |
 
-A floating "Compare (n)" pill is visible on every page once you've ticked at least one shoe.
-
----
-
-## Data refresh workflow
-
-```bash
-# 1. edit data/EnergyReturn-ShockAbsorption.xlsx
-# 2. regenerate JSON
-npm run data
-# 3. commit + push — GitHub Actions auto-deploys
-git add -A
-git commit -m "data: refresh $(date +%F)"
-git push
-```
-
-End-to-end: ~2 minutes from `git push` to live.
-
----
-
-## Hosting
-
-The currently active deploy target is **GitHub Pages**, via the workflow at
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). It runs on every
-push to `main`: Python ETL → `npm install` → `next build` → upload `out/` →
-publish.
-
-### To deploy to a fresh GitHub Pages site
-1. Push the repo to GitHub.
-2. Settings → Pages → Source: **GitHub Actions**.
-3. Push to `main`. Site goes live at `https://<user>.github.io/<repo>/`.
-4. Base path is set automatically from `NEXT_PUBLIC_BASE_PATH=/${{ repo.name }}`
-   so the repo name *is* the URL path — keep them in sync if you fork.
-
-### Alternative free hosts (same `out/` works on all of them)
-
-**Cloudflare Pages** — no credit card.
-1. dash.cloudflare.com → Workers & Pages → Create → Pages → connect this repo.
-2. Framework preset: **Next.js (Static HTML Export)**.
-3. Build: `npm run build` · Output: `out`. URL: `<project>.pages.dev`.
-
-**Vercel Hobby** — autodetects Next.js, no overrides needed.
-1. https://vercel.com/new → import this repo. URL: `<project>.vercel.app`.
+A floating "Compare (n)" pill is visible on every page once you've ticked at
+least one shoe.
 
 ---
 
 ## Project layout
 
 ```
-soldex/                            ← repo root = the Next.js app
-├── app/                           ← App Router pages
-├── components/                    ← BrowseView, ShoeDetail, ComparePage, InsightsView, CompareBar
-├── lib/                           ← types, data, filter, derive, format
-├── store/compare.ts               ← Zustand compare-cart (max 4, persisted)
+soldex/
+├── app/                            ← App Router pages
+├── components/                     ← BrowseView, ShoeDetail, ShoeForm, ...
+├── lib/                            ← columns, types, bands, preferences, hooks, mutations, supabase
+├── store/compare.ts                ← Zustand compare-cart (max 4, persisted)
 ├── styles/globals.css
-├── public/data/                   ← shoes.json, meta.json (generated, committed)
-├── data/                          ← xlsx source of truth + auto-converted markdown
-├── scripts/build_data.py          ← ETL
-├── docs/PROJECT.md                ← living spec
-├── .github/workflows/deploy.yml   ← GH Pages CI
+├── public/data/                    ← shoes.json + meta.json (bundled fallback)
+├── supabase/migrations/            ← SQL schema (0001_init.sql)
+├── supabase/README.md              ← dashboard setup walk-through
+├── scripts/migrate_to_supabase.ts  ← idempotent JSON → DB importer
+├── legacy/                         ← xlsx source + Python ETL (kept for reference)
+│   ├── data/EnergyReturn-ShockAbsorption.xlsx
+│   ├── scripts/build_data.py
+│   └── requirements.txt
+├── docs/PROJECT.md                 ← living spec
+├── .env.local.example
 ├── package.json · package-lock.json
 ├── next.config.mjs · tsconfig.json · tailwind.config.js · postcss.config.mjs
-├── .nvmrc · .editorconfig · .eslintrc.json · .prettierrc · .gitattributes · .gitignore
-├── requirements.txt               ← Python ETL deps
-├── LICENSE                        ← MIT
+├── LICENSE                         ← MIT
 └── README.md
 ```
 
 ## Scripts
 
-| Command           | What it does                              |
-|-------------------|-------------------------------------------|
-| `npm run dev`     | Next dev server with HMR                  |
-| `npm run build`   | Static export to `./out`                  |
-| `npm run start`   | Serve the production build                |
-| `npm run lint`    | ESLint via `next lint`                    |
-| `npm run format`  | Prettier write                            |
-| `npm run data`    | Run ETL: xlsx → `public/data/*.json`      |
+| Command            | What it does                                            |
+|--------------------|---------------------------------------------------------|
+| `npm run dev`      | Next dev server with HMR                                |
+| `npm run build`    | Production build for Vercel / Node hosts                |
+| `npm run start`    | Serve the production build                              |
+| `npm run lint`     | ESLint via `next lint`                                  |
+| `npm run format`   | Prettier write                                          |
+| `npm run migrate`  | Seed Supabase from `public/data/shoes.json`             |
+| `npm run data`     | Legacy: re-run Python ETL (`legacy/scripts/build_data.py`) |
 
-## Tech stack (actual)
+## Tech stack
 
-- **Next.js 15** (App Router, static export) + **React 19** + **TypeScript 5**
-- **Tailwind CSS 3** — utility-first, plain config, dark theme baked in
+- **Next.js 15** (App Router) + **React 19** + **TypeScript 5**
+- **Tailwind CSS 3** — utility-first, plain config, dark theme
 - **Recharts** for radar / scatter / bar charts
 - **Zustand** (persisted to `localStorage`) for the compare-cart
-- **Python 3.10+** with **pandas** + **openpyxl** for the ETL
-- ESLint (`next/core-web-vitals`) + Prettier
+- **SWR** for data fetching with stale-while-revalidate
+- **Supabase** (Postgres + Auth + RLS) for the CRUD backend
+- Optional **Python 3.10+** with **pandas** + **openpyxl** for the legacy ETL
 
-See [docs/PROJECT.md §5](docs/PROJECT.md#5-tech-stack) for what was specified vs. shipped vs. deferred.
+See [docs/PROJECT.md §5](docs/PROJECT.md#5-tech-stack) for what was specified
+vs. shipped vs. deferred.
 
 ## Notes
 
-- The full dataset (~50 KB JSON) is bundled into the JS — first paint includes everything; all filtering is instant.
-- `noindex,nofollow` is set in `app/layout.tsx` — not intended for search-engine discovery.
-- Compare cart is persisted in `localStorage` *and* reflected in `?ids=` for sharing.
-- `public/data/{shoes,meta}.json` is committed so any host can deploy without needing Python.
+- The bundled dataset (~50 KB JSON) keeps the site fully functional with no
+  Supabase credentials. Once Supabase env vars are set, the same hooks switch
+  over automatically.
+- `noindex,nofollow` is set in `app/layout.tsx` — not intended for
+  search-engine discovery.
+- Soft deletes (`deleted_at`) keep history; every insert/update/delete writes
+  an immutable row to `shoe_revisions` via a security-definer trigger.
+- The compare cart is persisted in `localStorage` *and* reflected in `?ids=`
+  for sharing.

@@ -25,8 +25,8 @@ from pathlib import Path
 
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]  # repo root
-XLSX = ROOT / "data" / "EnergyReturn-ShockAbsorption.xlsx"
+ROOT = Path(__file__).resolve().parents[2]  # repo root (legacy/scripts/.. -> legacy/.. -> root)
+XLSX = ROOT / "legacy" / "data" / "EnergyReturn-ShockAbsorption.xlsx"
 OUT_DIR = ROOT / "public" / "data"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -124,10 +124,10 @@ const QA: { q: string; a: React.ReactNode }[] = [
     q: 'Where is the data file?',
     a: (
       <>
-        The generated JSON lives in <code>public/data/</code> in the
-        repository. The source spreadsheet lives in <code>data/</code>. The
-        ETL script that turns one into the other is{' '}
-        <code>scripts/build_data.py</code>.
+        The live dataset is stored in Supabase (Postgres). A snapshot lives in{' '}
+        <code>public/data/</code> in the repository as a read-only fallback for
+        local development. The original spreadsheet and Python ETL are archived
+        in <code>legacy/</code>.
       </>
     ),
   },

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "data": "python scripts/build_data.py",
+    "data": "python legacy/scripts/build_data.py",
     "migrate": "tsx scripts/migrate_to_supabase.ts"
   },
   "dependencies": {
